@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "skincast",
+  "version": "${version}",
+  "name": "Skincast bridge",
+  "description": "Send local player motion to your separate Skincast OBS avatar.",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.skincast.SkincastClient"] },
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "minecraft": "=1.21.11",
+    "java": ">=21",
+    "fabric-api": ">=0.141.6+1.21.11"
+  }
+}

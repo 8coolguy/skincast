@@ -136,8 +136,20 @@ async function updateFace(source) {
   }
 }
 
+function updateMinecraft(minecraft) {
+  avatar?.setMinecraft(minecraft);
+  $("minecraft-status").classList.toggle("online", minecraft.connected);
+  $("minecraft-status").textContent = minecraft.active
+    ? "Minecraft connected · following player"
+    : minecraft.connected
+      ? "Minecraft connected · paused or in a menu"
+      : "Waiting for the Fabric mod";
+}
+
 function renderSettings(next) {
   settings = next;
+  renderTrackingMode();
+  $("minecraft-options").hidden = settings.motionSource !== "minecraft";
   avatar?.configure(settings);
   playground?.configure(settings);
   $("voice-count-field").hidden = settings.voiceStyle === "ring";
@@ -236,6 +248,7 @@ const connection = connect(
   (message) => {
     if (message.type === "state") {
       renderSettings(message.settings);
+      updateMinecraft(message.minecraft);
       voice = message.voice;
       lastPointer = message.pointer;
       avatar?.setInput({ ...lastPointer, ...voice });
@@ -244,6 +257,7 @@ const connection = connect(
       updateVoice();
       updateTracking(message.tracking);
     }
+    if (message.type === "minecraft") updateMinecraft(message.minecraft);
     if (message.type === "settings") renderSettings(message.settings);
     if (message.type === "play") {
       avatar?.setPerformance(message.play);
@@ -275,6 +289,7 @@ const connection = connect(
       : "Reconnecting…";
     if (connected && stopMic) connection.send({ type: "voice-start" });
     if (!connected) {
+      updateMinecraft({ connected: false, active: false });
       voice = { level: 0, connected: false };
       updateVoice();
       avatar?.setInput({ x: 0, y: 0 });
@@ -325,6 +340,9 @@ document.querySelectorAll("[data-setting]").forEach((el) => {
     });
   el.addEventListener("change", () =>
     save({
+      ...(el.dataset.setting === "motionSource" && el.value === "minecraft"
+        ? { stageMode: "avatar" }
+        : {}),
       [el.dataset.setting]:
         el.type === "checkbox"
           ? el.checked
@@ -507,15 +525,25 @@ $("microphone").addEventListener("change", async () => {
 navigator.mediaDevices?.addEventListener("devicechange", listDevices);
 listDevices();
 
-$("preview-track").addEventListener("click", () => {
-  previewTracking = !previewTracking;
+function renderTrackingMode() {
+  const game =
+    settings.motionSource === "minecraft" && settings.stageMode === "avatar";
+  if (game) previewTracking = false;
+  $("tracking-status").hidden = game;
+  $("preview-track").hidden = game;
   $("preview-track").setAttribute("aria-pressed", previewTracking);
   $("preview-track").textContent = previewTracking
     ? "Use desktop tracking"
     : "Preview tracking";
-  $("preview-note-text").textContent = previewTracking
-    ? "Move your mouse inside this preview."
-    : "Move your mouse anywhere on your screen.";
+  $("preview-note-text").textContent = game
+    ? "Play in Minecraft to move your OBS avatar."
+    : previewTracking
+      ? "Move your mouse inside this preview."
+      : "Move your mouse anywhere on your screen.";
+}
+$("preview-track").addEventListener("click", () => {
+  previewTracking = !previewTracking;
+  renderTrackingMode();
   if (!previewTracking) avatar?.setInput(lastPointer);
 });
 $("preview-scene").addEventListener("pointermove", (event) => {

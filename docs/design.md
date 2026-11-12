@@ -30,3 +30,9 @@ Compared browser-only, Electron desktop app, and a local server with a native cu
 ## Verification
 
 Node tests exercise HTTP settings, persistence, input validation, stale/disconnected voice input, skin lookup boundaries, sandbox collision, jump landings, bounds, gestures, stale movement, and shared controller ownership. Browser tests exercise the real renderer, speaking controls, gestures, keyboard and block tools, focus release, late-joining overlays, synthetic microphone input, and reload behavior. Live OBS composition and hardware microphone permission are manual checks.
+
+## Optional Minecraft input
+
+`minecraft-mod/` is a client-only Fabric publisher for Java 1.21.11. `lib/minecraft.mjs` owns pairing validation, packet validation, publisher ownership, and stale expiry. The dedicated `/minecraft` WebSocket accepts authenticated native clients only. `server.mjs` broadcasts sanitized Minecraft state alongside the existing pointer, play, and voice streams. No Minecraft state is persisted.
+
+The persisted `motionSource` setting defaults to `desktop`. `src/minecraft-pose.js` maps game pose to audience-facing avatar motion; `src/avatar.js` selects it only in Avatar view and clears stale poses locally as well as through server expiry. Microphone and background behavior remain independent. The full decision, protocol, installation, and verification limits are in [the Minecraft guide](minecraft.md).

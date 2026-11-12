@@ -12,7 +12,8 @@
     "start": "node scripts/launch.cjs",
     "dev": "node scripts/launch.cjs",
     "test": "node scripts/launch.cjs test",
-    "test:browser": "node scripts/launch.cjs browser"
+    "test:browser": "node scripts/launch.cjs browser",
+    "test:minecraft": "node scripts/launch.cjs minecraft"
   },
   "dependencies": {
     "skinview3d": "3.4.2",

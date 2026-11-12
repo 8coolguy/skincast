@@ -5,6 +5,7 @@ export function createPlayground(send, save) {
   let owned = false;
   let online = false;
   let mode = "avatar";
+  let minecraftMotion = false;
   let shared = false;
   const movement = {
     KeyW: "up",
@@ -51,6 +52,7 @@ export function createPlayground(send, save) {
     document.querySelectorAll("[data-action]").forEach((button) => {
       button.disabled =
         !online ||
+        minecraftMotion ||
         (shared && !owned) ||
         (mode === "sandbox" &&
           ["jump", "place", "remove", "reset"].includes(
@@ -63,6 +65,7 @@ export function createPlayground(send, save) {
     });
   };
   const command = (action) => {
+    if (minecraftMotion) return;
     send({
       type: "game-command",
       action,
@@ -143,6 +146,8 @@ export function createPlayground(send, save) {
         held.clear();
       }
       mode = settings.stageMode;
+      minecraftMotion =
+        mode === "avatar" && settings.motionSource === "minecraft";
       document.getElementById("sandbox-tools").hidden = mode !== "sandbox";
       document.querySelectorAll("[data-stage]").forEach((button) => {
         const active = button.dataset.stage === mode;
@@ -161,11 +166,13 @@ export function createPlayground(send, save) {
         owned = false;
         held.clear();
       }
-      const text = state.action
-        ? `${state.action.name[0].toUpperCase()}${state.action.name.slice(1)}`
-        : owned
-          ? "You're in control"
-          : "Ready to play";
+      const text = minecraftMotion
+        ? "Minecraft controls the avatar"
+        : state.action
+          ? `${state.action.name[0].toUpperCase()}${state.action.name.slice(1)}`
+          : owned
+            ? "You're in control"
+            : "Ready to play";
       const status = document.getElementById("action-status");
       if (status.textContent !== text) status.textContent = text;
       const count = document.getElementById("block-count"),

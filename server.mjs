@@ -7,6 +7,11 @@ import { defaults, validateSettings, parseLevel } from "./lib/settings.mjs";
 import { fetchSkin } from "./lib/skins.mjs";
 import { startCursor } from "./lib/cursor.mjs";
 import { createSandbox } from "./lib/sandbox.mjs";
+import {
+  minecraftToken,
+  authorizedMinecraft,
+  createMinecraftBridge,
+} from "./lib/minecraft.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const types = {
@@ -47,6 +52,12 @@ export async function startServer({
   let micOwner = null;
   let micTimestamp = 0;
   let writeQueue = Promise.resolve();
+  const token = await minecraftToken(dataDir);
+  const minecraft = createMinecraftBridge();
+  const minecraftWss = new WebSocketServer({
+    noServer: true,
+    maxPayload: 2048,
+  });
   const sandbox = createSandbox();
   sandbox.setMode(settings.stageMode);
   let controlOwner = null;
@@ -65,6 +76,7 @@ export async function startServer({
     type: "state",
     settings,
     tracking,
+    minecraft: minecraft.snapshot(),
     pointer,
     voice: { level, connected: !!micOwner },
     play: sandbox.snapshot(Date.now()),
@@ -92,6 +104,16 @@ export async function startServer({
       )
         return sendJson(res, 403, { error: "Origin is not allowed." });
       const url = new URL(req.url, "http://localhost");
+      if (url.pathname === "/api/minecraft/config" && req.method === "GET") {
+        res.writeHead(200, {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+          "Content-Disposition": 'attachment; filename="skincast.properties"',
+        });
+        return res.end(
+          `# Put this file in your Minecraft instance's config folder.\nurl=ws://127.0.0.1:${server.address().port}/minecraft\ntoken=${token}\n`,
+        );
+      }
       if (url.pathname === "/api/state" && req.method === "GET")
         return sendJson(res, 200, state());
       if (url.pathname === "/api/settings" && req.method === "PUT") {
@@ -187,6 +209,17 @@ export async function startServer({
       `http://127.0.0.1:${address.port}`,
       `http://localhost:${address.port}`,
     ];
+    if (req.url === "/minecraft") {
+      if (
+        !allowed.includes(`http://${req.headers.host}`) ||
+        req.headers.origin ||
+        !authorizedMinecraft(req.headers["x-skincast-token"], token)
+      )
+        return socket.destroy();
+      return minecraftWss.handleUpgrade(req, socket, head, (ws) =>
+        minecraftWss.emit("connection", ws),
+      );
+    }
     if (
       req.url !== "/events" ||
       !allowed.includes(`http://${req.headers.host}`) ||
@@ -196,6 +229,27 @@ export async function startServer({
     wss.handleUpgrade(req, socket, head, (ws) =>
       wss.emit("connection", ws, req),
     );
+  });
+  const broadcastMinecraft = () =>
+    broadcast({ type: "minecraft", minecraft: minecraft.snapshot() });
+  minecraftWss.on("connection", (ws) => {
+    ws.on("error", () => {});
+    if (!minecraft.claim(ws))
+      return ws.close(1008, "Another Minecraft client is connected.");
+    broadcastMinecraft();
+    ws.on("message", (raw, binary) => {
+      try {
+        if (binary) throw new Error("Send JSON text.");
+        if (minecraft.receive(ws, JSON.parse(raw.toString())))
+          broadcastMinecraft();
+      } catch {
+        ws.close(1008, "Invalid Minecraft motion packet.");
+        if (minecraft.disconnect(ws)) broadcastMinecraft();
+      }
+    });
+    ws.on("close", () => {
+      if (minecraft.disconnect(ws)) broadcastMinecraft();
+    });
   });
   wss.on("connection", (ws) => {
     let lastCommand = 0;
@@ -289,6 +343,11 @@ export async function startServer({
     broadcast({ type: "play", play: sandbox.snapshot(now) });
   }, 1000 / 30);
   const stale = setInterval(() => {
+    const expiredMinecraft = minecraft.expire();
+    if (expiredMinecraft) {
+      expiredMinecraft.terminate();
+      broadcastMinecraft();
+    }
     if (micOwner && Date.now() - micTimestamp > 2500) {
       micOwner = null;
       level = 0;
@@ -330,6 +389,8 @@ export async function startServer({
       (await cursorPromise)();
       for (const client of wss.clients) client.terminate();
       wss.close();
+      for (const client of minecraftWss.clients) client.terminate();
+      minecraftWss.close();
       await writeQueue;
       await new Promise((resolve) => server.close(resolve));
     },

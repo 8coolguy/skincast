@@ -7,6 +7,7 @@ const commands = {
   build: ["scripts/build.mjs"],
   test: ["--test", ...fs.readdirSync(path.join(__dirname, "../test")).filter((name) => name.endsWith(".test.mjs")).map((name) => `test/${name}`)],
   browser: ["test/browser.mjs"],
+  minecraft: ["test/minecraft-browser.mjs"],
 };
 const task = process.argv[2] || "start";
 if (!Object.prototype.hasOwnProperty.call(commands, task)) {

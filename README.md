@@ -39,9 +39,9 @@ The server starts the cursor helper automatically. Check the **Movement** card f
 - **Linux with X11:** Install `xdotool` and Python 3. The helper reads the X11 desktop geometry and cursor position.
 - **Linux with Wayland:** Global tracking is unavailable. Use an X11 session or **Preview tracking** to test movement inside the studio.
 
-On macOS and Windows, the avatar follows the cursor relative to the display containing it. On X11, coordinates cover the combined desktop. **Preview tracking** affects only the studio preview. The OBS overlay continues using the desktop cursor.
+On macOS and Windows, the avatar follows the cursor relative to the display containing it. On X11, coordinates cover the combined desktop. In Desktop cursor mode, **Preview tracking** affects only the studio preview. The OBS overlay continues using the desktop cursor.
 
-A game that locks or repeatedly warps the mouse to the center also centers the avatar's gaze. This version tracks absolute cursor position, so mouse-look in Minecraft's locked-cursor mode does not turn the avatar's head.
+Desktop cursor mode uses absolute pointer position. Games that lock the cursor at the center also center the avatar's gaze. Choose **Minecraft Java** with the optional Fabric bridge to follow game motion.
 
 ## Adjust the avatar
 
@@ -52,6 +52,10 @@ Use the color picker beside **Speaking indicator** to choose the effect's color.
 Set **Voice bounce** to zero to keep the avatar still while talking. The indicator switch hides the speaking effect independently of the bounce. **Test effect** runs a short preview without a microphone and does not send simulated speech to OBS. **Reset speaking effect** restores the default look. These settings save automatically and update the OBS overlay.
 
 Custom skins can use classic or slim arms. Auto detect works for standard skins. Uploaded PNGs must be 64 × 64, 64 × 32, or an HD multiple up to 1024 px wide.
+
+## Play real Minecraft
+
+For first-person Minecraft Java with a separate OBS avatar, use the optional [Fabric bridge](docs/minecraft.md). The current build targets Minecraft 1.21.11 with Java 21. Choose **Minecraft Java** under **Movement**, download the pairing config, and install the client mod. Walking, head movement, jumps, sneaking, and arm actions drive the avatar while microphone effects and backgrounds stay in Skincast. See the guide for build/install steps and what still needs in-game testing.
 
 ## Play with the avatar
 

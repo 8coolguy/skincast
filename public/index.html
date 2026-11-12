@@ -104,10 +104,37 @@
               <span data-icon="cursor"></span>
               <h2>Movement</h2>
             </div>
+            <div class="field-row">
+              <label for="motionSource">Motion source</label>
+              <select id="motionSource" data-setting="motionSource">
+                <option value="desktop">Desktop cursor</option>
+                <option value="minecraft">Minecraft Java</option>
+              </select>
+            </div>
+            <div id="minecraft-options" class="minecraft-options" hidden>
+              <p id="minecraft-status" class="helper-status" role="status">
+                Waiting for the Fabric mod
+              </p>
+              <p>
+                Play in first person. Your OBS avatar follows your head,
+                walking, jumps, sneaking, and arm actions.
+              </p>
+              <a
+                class="minecraft-download"
+                href="/api/minecraft/config"
+                download="skincast.properties"
+                >Download Minecraft config</a
+              >
+              <p>
+                Fabric 1.21.11 + Java 21. Install the bridge mod, put this file
+                in your instance's config folder, then restart Minecraft.
+                Minecraft motion uses Avatar view.
+              </p>
+            </div>
             <label class="toggle-row" for="tracking"
               ><span
-                >Follow my mouse<small
-                  >Head turns toward your cursor</small
+                >Follow look direction<small
+                  >Use the selected motion source</small
                 ></span
               ><input
                 class="toggle"

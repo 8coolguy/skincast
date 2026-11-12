@@ -1607,3 +1607,24 @@ kbd {
     gap: 10px;
   }
 }
+
+.minecraft-options {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.minecraft-options p {
+  margin: 0 0 12px;
+}
+.minecraft-options p:last-child {
+  margin-bottom: 0;
+}
+.minecraft-download {
+  display: inline-block;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: inherit;
+}

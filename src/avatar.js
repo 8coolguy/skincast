@@ -1,6 +1,7 @@
 import { SkinViewer } from "skinview3d";
 import { MeshBasicMaterial } from "three";
 import { createSpeech } from "./speech.js";
+import { minecraftPose } from "./minecraft-pose.js";
 import { createIsland } from "./island.js";
 
 export function createAvatar(container, onError = () => {}) {
@@ -38,6 +39,8 @@ export function createAvatar(container, onError = () => {}) {
     blocks: [],
     revision: 0,
   };
+  let minecraft = { active: false };
+  let minecraftAt = 0;
   let testUntil = 0;
   let settings;
   let input = { x: 0, y: 0, level: 0, connected: false };
@@ -62,8 +65,17 @@ export function createAvatar(container, onError = () => {}) {
     last = now;
     if (settings) {
       const blend = 1 - Math.pow(settings.smoothing, delta * 60);
-      const targetX = settings.tracking ? input.x * settings.sensitivity : 0;
-      const targetY = settings.tracking ? input.y * settings.sensitivity : 0;
+      const useMinecraft =
+        settings.motionSource === "minecraft" &&
+        settings.stageMode === "avatar";
+      const liveMinecraft =
+        useMinecraft && minecraft.active && now - minecraftAt < 1500;
+      const motion = minecraftPose(
+        liveMinecraft ? minecraft : { active: false },
+      );
+      const gaze = useMinecraft ? motion : input;
+      const targetX = settings.tracking ? gaze.x * settings.sensitivity : 0;
+      const targetY = settings.tracking ? gaze.y * settings.sensitivity : 0;
       x += (targetX - x) * blend;
       y += (targetY - y) * blend;
       const demo = now < testUntil;
@@ -83,7 +95,12 @@ export function createAvatar(container, onError = () => {}) {
         0,
       );
       skin.body.rotation.set(0, 0, -x * 0.045);
-      const stride = sandbox && play.moving ? Math.sin(t * 12) * 0.75 : 0;
+      const stride =
+        sandbox && play.moving
+          ? Math.sin(t * 12) * 0.75
+          : liveMinecraft
+            ? Math.sin(t * 12) * motion.stride
+            : 0;
       skin.leftLeg.rotation.x = stride;
       skin.rightLeg.rotation.x = -stride;
       skin.leftArm.rotation.x = -stride;
@@ -98,10 +115,20 @@ export function createAvatar(container, onError = () => {}) {
         voice * Math.abs(Math.sin(t * 12)) * 0.65 * settings.voiceBounce;
       viewer.playerObject.position.set(
         sandbox ? play.x * 4 : 0,
-        baseY + play.y * 4 + bob * (sandbox ? 0.2 : 1),
+        baseY +
+          (useMinecraft ? motion.lift - motion.crouch * 1.8 : play.y * 4) +
+          bob * (sandbox ? 0.2 : 1),
         sandbox ? play.z * 4 : 0,
       );
-      const action = play.action;
+      if (liveMinecraft) {
+        skin.body.rotation.x = motion.crouch * 0.3;
+        skin.rightArm.rotation.x = motion.usingItem
+          ? -1.2
+          : -Math.sin(motion.swing * Math.PI) * 1.8 - stride;
+        skin.leftLeg.rotation.x += motion.crouch * 0.25;
+        skin.rightLeg.rotation.x += motion.crouch * 0.25;
+      } else skin.body.rotation.x = 0;
+      const action = useMinecraft ? null : play.action;
       if (action?.name === "wave")
         skin.rightArm.rotation.z =
           -2.5 + Math.sin(action.progress * Math.PI * 8) * 0.4;
@@ -123,6 +150,12 @@ export function createAvatar(container, onError = () => {}) {
           (sandbox ? 0.5 : 1.6);
       }
       speech.animate(voice, t, settings);
+      container.dataset.motionSource = useMinecraft ? "minecraft" : "desktop";
+      container.dataset.minecraftActive = String(!!liveMinecraft);
+      container.dataset.stride = stride.toFixed(3);
+      container.dataset.lift = (useMinecraft ? motion.lift : 0).toFixed(3);
+      container.dataset.swing = (useMinecraft ? motion.swing : 0).toFixed(3);
+      container.dataset.crouch = (useMinecraft ? motion.crouch : 0).toFixed(3);
       container.dataset.speaking = String(talking);
       container.dataset.gazeX = x.toFixed(3);
       container.dataset.gazeY = y.toFixed(3);
@@ -209,6 +242,10 @@ export function createAvatar(container, onError = () => {}) {
     },
     setInput(next) {
       input = { ...input, ...next };
+    },
+    setMinecraft(next) {
+      minecraft = next;
+      minecraftAt = performance.now();
     },
     setPerformance(next) {
       play = next;

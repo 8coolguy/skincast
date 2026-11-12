@@ -3,3 +3,6 @@ dist/
 .runtime/
 test-results/
 .DS_Store
+minecraft-mod/.gradle/
+minecraft-mod/build/
+minecraft-mod/run/

@@ -14,7 +14,9 @@ try {
         avatar.configure(message.settings);
         avatar.setInput({ ...message.pointer, ...message.voice });
         avatar.setPerformance(message.play);
+        avatar.setMinecraft(message.minecraft);
       }
+      if (message.type === "minecraft") avatar.setMinecraft(message.minecraft);
       if (message.type === "settings") avatar.configure(message.settings);
       if (message.type === "play") avatar.setPerformance(message.play);
       if (message.type === "pointer")
@@ -27,6 +29,7 @@ try {
     (connected) => {
       document.body.dataset.connected = String(connected);
       if (!connected) {
+        avatar.setMinecraft({ active: false });
         avatar.setInput({ x: 0, y: 0, level: 0, connected: false });
         error.textContent = "Reconnecting to Skincast…";
         error.hidden = false;
