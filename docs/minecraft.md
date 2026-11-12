@@ -48,6 +48,10 @@ Primary references checked for this implementation:
 
 The config pairs this Minecraft instance with this running studio's port and token. If you change ports, move the config to another computer, or reset `.runtime/`, download a fresh config and restart Minecraft. A missing or invalid config disables the mod's bridge and logs a setup message; the rest of Minecraft continues normally.
 
+## Playing another instance or game
+
+For head movement while another game or instance has focus, use the independent [Game mouse mode](game-mouse.md) on macOS. No Fabric connection is needed for that mode. For actual Minecraft walking, jumps, and actions, put this mod in the instance you are playing and use Minecraft Java mode. Only one instance can publish to the current bridge at a time.
+
 ## What follows the player
 
 The mod samples on client ticks, normally 20 times per second. It sends wrapped yaw, body yaw, pitch, horizontal speed, a capped height above takeoff, grounded state, sneaking, sprinting, vanilla arm-swing progress, and item-use state. It observes actual player state rather than emulating key presses. The avatar walks in place; it never follows world coordinates across the OBS source.

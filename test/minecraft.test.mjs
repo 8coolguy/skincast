@@ -181,6 +181,7 @@ test("paired Minecraft reaches OBS, keeps voice independent, and releases stale 
     oversized.send("x".repeat(3000));
     const [oversizedCode] = await once(oversized, "close");
     assert.equal(oversizedCode, 1009);
+    await waitFor(async () => !(await state()).minecraft.connected);
     assert.deepEqual((await state()).minecraft, {
       connected: false,
       active: false,

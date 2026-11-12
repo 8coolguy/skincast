@@ -8,6 +8,7 @@ const commands = {
   test: ["--test", ...fs.readdirSync(path.join(__dirname, "../test")).filter((name) => name.endsWith(".test.mjs")).map((name) => `test/${name}`)],
   browser: ["test/browser.mjs"],
   minecraft: ["test/minecraft-browser.mjs"],
+  relative: ["test/relative-mouse-browser.mjs"],
 };
 const task = process.argv[2] || "start";
 if (!Object.prototype.hasOwnProperty.call(commands, task)) {

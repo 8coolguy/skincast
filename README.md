@@ -53,6 +53,10 @@ Set **Voice bounce** to zero to keep the avatar still while talking. The indicat
 
 Custom skins can use classic or slim arms. Auto detect works for standard skins. Uploaded PNGs must be 64 × 64, 64 × 32, or an HD multiple up to 1024 px wide.
 
+## Follow movement in another game
+
+On macOS, choose **Game mouse · macOS** under **Movement** to react to relative mouse movement while playing a second Minecraft instance or another game. Enable Input Monitoring when prompted by the card. This moves the Skincast avatar's head without requiring a mod in the game. See [Game mouse setup and verification limits](docs/game-mouse.md). Actual captured-input behavior still needs testing in your games.
+
 ## Play real Minecraft
 
 For first-person Minecraft Java with a separate OBS avatar, use the optional [Fabric bridge](docs/minecraft.md). The current build targets Minecraft 1.21.11 with Java 21. Choose **Minecraft Java** under **Movement**, download the pairing config, and install the client mod. Walking, head movement, jumps, sneaking, and arm actions drive the avatar while microphone effects and backgrounds stay in Skincast. See the guide for build/install steps and what still needs in-game testing.

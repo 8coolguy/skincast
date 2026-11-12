@@ -13,7 +13,8 @@
     "dev": "node scripts/launch.cjs",
     "test": "node scripts/launch.cjs test",
     "test:browser": "node scripts/launch.cjs browser",
-    "test:minecraft": "node scripts/launch.cjs minecraft"
+    "test:minecraft": "node scripts/launch.cjs minecraft",
+    "test:game-mouse": "node scripts/launch.cjs relative"
   },
   "dependencies": {
     "skinview3d": "3.4.2",

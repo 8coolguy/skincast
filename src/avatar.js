@@ -41,6 +41,7 @@ export function createAvatar(container, onError = () => {}) {
   };
   let minecraft = { active: false };
   let minecraftAt = 0;
+  let relativeAt = 0;
   let testUntil = 0;
   let settings;
   let input = { x: 0, y: 0, level: 0, connected: false };
@@ -73,7 +74,18 @@ export function createAvatar(container, onError = () => {}) {
       const motion = minecraftPose(
         liveMinecraft ? minecraft : { active: false },
       );
-      const gaze = useMinecraft ? motion : input;
+      const useRelative =
+        settings.motionSource === "relative" && settings.stageMode === "avatar";
+      const liveRelative =
+        useRelative && input.relativeAvailable && now - relativeAt < 1500;
+      const gaze = useMinecraft
+        ? motion
+        : useRelative
+          ? {
+              x: liveRelative ? input.gameX : 0,
+              y: liveRelative ? input.gameY : 0,
+            }
+          : input;
       const targetX = settings.tracking ? gaze.x * settings.sensitivity : 0;
       const targetY = settings.tracking ? gaze.y * settings.sensitivity : 0;
       x += (targetX - x) * blend;
@@ -150,7 +162,12 @@ export function createAvatar(container, onError = () => {}) {
           (sandbox ? 0.5 : 1.6);
       }
       speech.animate(voice, t, settings);
-      container.dataset.motionSource = useMinecraft ? "minecraft" : "desktop";
+      container.dataset.motionSource = useMinecraft
+        ? "minecraft"
+        : useRelative
+          ? "relative"
+          : "desktop";
+      container.dataset.relativeActive = String(!!liveRelative);
       container.dataset.minecraftActive = String(!!liveMinecraft);
       container.dataset.stride = stride.toFixed(3);
       container.dataset.lift = (useMinecraft ? motion.lift : 0).toFixed(3);
@@ -241,6 +258,8 @@ export function createAvatar(container, onError = () => {}) {
       }
     },
     setInput(next) {
+      if (Object.hasOwn(next, "relativeAvailable"))
+        relativeAt = performance.now();
       input = { ...input, ...next };
     },
     setMinecraft(next) {

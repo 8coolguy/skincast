@@ -37,6 +37,7 @@ let voice = { level: 0, connected: false };
 let stopMic;
 let previewTracking = false;
 let lastPointer = { x: 0, y: 0 };
+let tracking = { connected: false };
 let toastTimer;
 let avatar;
 let faceSource;
@@ -149,6 +150,8 @@ function updateMinecraft(minecraft) {
 function renderSettings(next) {
   settings = next;
   renderTrackingMode();
+  $("relative-options").hidden = settings.motionSource !== "relative";
+  renderRelativeStatus();
   $("minecraft-options").hidden = settings.motionSource !== "minecraft";
   avatar?.configure(settings);
   playground?.configure(settings);
@@ -266,7 +269,13 @@ const connection = connect(
     if (message.type === "control") playground?.control(message.owned);
     if (message.type === "control-busy") toast(message.message, true);
     if (message.type === "pointer") {
-      lastPointer = { x: message.x, y: message.y };
+      lastPointer = {
+        x: message.x,
+        y: message.y,
+        gameX: message.gameX,
+        gameY: message.gameY,
+        relativeAvailable: message.relativeAvailable,
+      };
       if (!previewTracking) avatar?.setInput(lastPointer);
     }
     if (message.type === "tracking") updateTracking(message.tracking);
@@ -292,7 +301,7 @@ const connection = connect(
       updateMinecraft({ connected: false, active: false });
       voice = { level: 0, connected: false };
       updateVoice();
-      avatar?.setInput({ x: 0, y: 0 });
+      avatar?.setInput({ x: 0, y: 0, relativeAvailable: false });
     }
   },
 );
@@ -314,14 +323,16 @@ $("reset-voice").addEventListener("click", () =>
   }),
 );
 
-function updateTracking(tracking) {
+function updateTracking(next) {
+  tracking = next;
+  renderRelativeStatus();
   $("tracking-status").classList.toggle("online", tracking.connected);
   $("tracking-text").textContent = tracking.connected
     ? `Desktop tracking · ${tracking.message}`
     : tracking.message;
   $("tracking-status").title = tracking.message;
   if (!tracking.connected && !previewTracking) {
-    lastPointer = { x: 0, y: 0 };
+    lastPointer = { x: 0, y: 0, relativeAvailable: false };
     avatar?.setInput(lastPointer);
   }
 }
@@ -340,7 +351,8 @@ document.querySelectorAll("[data-setting]").forEach((el) => {
     });
   el.addEventListener("change", () =>
     save({
-      ...(el.dataset.setting === "motionSource" && el.value === "minecraft"
+      ...(el.dataset.setting === "motionSource" &&
+      ["minecraft", "relative"].includes(el.value)
         ? { stageMode: "avatar" }
         : {}),
       [el.dataset.setting]:
@@ -525,21 +537,49 @@ $("microphone").addEventListener("change", async () => {
 navigator.mediaDevices?.addEventListener("devicechange", listDevices);
 listDevices();
 
+function renderRelativeStatus() {
+  $("relative-status").textContent = !tracking.connected
+    ? tracking.message || "Waiting for the desktop helper…"
+    : tracking.relativeMessage || "Game mouse is unavailable on this desktop.";
+  $("relative-status").classList.toggle("online", !!tracking.relativeAvailable);
+  $("relative-permission").hidden =
+    tracking.relativeSupported !== true || tracking.relativeAvailable === true;
+}
+$("relative-permission").addEventListener("click", async () => {
+  $("relative-permission").disabled = true;
+  try {
+    const response = await fetch("/api/tracking/permission", {
+      method: "POST",
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    toast(result.message);
+  } catch (error) {
+    toast(error.message, true);
+  } finally {
+    $("relative-permission").disabled = false;
+  }
+});
+
 function renderTrackingMode() {
   const game =
     settings.motionSource === "minecraft" && settings.stageMode === "avatar";
-  if (game) previewTracking = false;
-  $("tracking-status").hidden = game;
-  $("preview-track").hidden = game;
+  const relative =
+    settings.motionSource === "relative" && settings.stageMode === "avatar";
+  if (game || relative) previewTracking = false;
+  $("tracking-status").hidden = game || relative;
+  $("preview-track").hidden = game || relative;
   $("preview-track").setAttribute("aria-pressed", previewTracking);
   $("preview-track").textContent = previewTracking
     ? "Use desktop tracking"
     : "Preview tracking";
   $("preview-note-text").textContent = game
     ? "Play in Minecraft to move your OBS avatar."
-    : previewTracking
-      ? "Move your mouse inside this preview."
-      : "Move your mouse anywhere on your screen.";
+    : relative
+      ? "Mouse movement in your game turns the avatar’s head."
+      : previewTracking
+        ? "Move your mouse inside this preview."
+        : "Move your mouse anywhere on your screen.";
 }
 $("preview-track").addEventListener("click", () => {
   previewTracking = !previewTracking;

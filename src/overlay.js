@@ -20,17 +20,29 @@ try {
       if (message.type === "settings") avatar.configure(message.settings);
       if (message.type === "play") avatar.setPerformance(message.play);
       if (message.type === "pointer")
-        avatar.setInput({ x: message.x, y: message.y });
+        avatar.setInput({
+          x: message.x,
+          y: message.y,
+          gameX: message.gameX,
+          gameY: message.gameY,
+          relativeAvailable: message.relativeAvailable,
+        });
       if (message.type === "voice")
         avatar.setInput({ level: message.level, connected: message.connected });
       if (message.type === "tracking" && !message.tracking.connected)
-        avatar.setInput({ x: 0, y: 0 });
+        avatar.setInput({ x: 0, y: 0, relativeAvailable: false });
     },
     (connected) => {
       document.body.dataset.connected = String(connected);
       if (!connected) {
         avatar.setMinecraft({ active: false });
-        avatar.setInput({ x: 0, y: 0, level: 0, connected: false });
+        avatar.setInput({
+          x: 0,
+          y: 0,
+          relativeAvailable: false,
+          level: 0,
+          connected: false,
+        });
         error.textContent = "Reconnecting to Skincast…";
         error.hidden = false;
       } else {

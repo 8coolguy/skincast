@@ -31,6 +31,7 @@ export async function startServer({
   cursor = true,
   quiet = false,
   skinFetcher = fetchSkin,
+  cursorFactory = startCursor,
 } = {}) {
   await mkdir(dataDir, { recursive: true });
   const settingsPath = path.join(dataDir, "settings.json");
@@ -104,6 +105,19 @@ export async function startServer({
       )
         return sendJson(res, 403, { error: "Origin is not allowed." });
       const url = new URL(req.url, "http://localhost");
+      if (
+        url.pathname === "/api/tracking/permission" &&
+        req.method === "POST"
+      ) {
+        try {
+          await (await cursorPromise).requestRelative();
+          return sendJson(res, 200, {
+            message: "Check macOS Input Monitoring settings, then return here.",
+          });
+        } catch (error) {
+          return sendJson(res, 409, { error: error.message });
+        }
+      }
       if (url.pathname === "/api/minecraft/config" && req.method === "GET") {
         res.writeHead(200, {
           "Content-Type": "text/plain; charset=utf-8",
@@ -359,7 +373,7 @@ export async function startServer({
     server.listen(port, "127.0.0.1", resolve);
   });
   const cursorPromise = cursor
-    ? startCursor(
+    ? cursorFactory(
         root,
         (value) => {
           pointer = value;
@@ -368,14 +382,22 @@ export async function startServer({
         (value) => {
           if (
             value.connected !== tracking.connected ||
-            value.message !== tracking.message
+            value.message !== tracking.message ||
+            value.relativeAvailable !== tracking.relativeAvailable ||
+            value.relativeMessage !== tracking.relativeMessage
           ) {
             tracking = value;
             broadcast({ type: "tracking", tracking });
           }
         },
+        { dataDir },
       )
-    : Promise.resolve(() => {});
+    : Promise.resolve({
+        stop() {},
+        async requestRelative() {
+          throw new Error("Desktop helper is disabled.");
+        },
+      });
   const address = `http://127.0.0.1:${server.address().port}`;
   if (!quiet)
     console.log(
@@ -386,7 +408,7 @@ export async function startServer({
     close: async () => {
       clearInterval(stale);
       clearInterval(simulation);
-      (await cursorPromise)();
+      (await cursorPromise).stop();
       for (const client of wss.clients) client.terminate();
       wss.close();
       for (const client of minecraftWss.clients) client.terminate();
