@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Skincast · OBS overlay</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent !important;
+      }
+      #avatar {
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+      }
+      canvas {
+        display: block;
+      }
+      #overlay-error {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        font: 14px/1.5 system-ui;
+        color: #fff;
+        background: #221f2ee8;
+        border-radius: 8px;
+        padding: 12px;
+      }
+      #overlay-error[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="avatar"></main>
+    <div id="overlay-error" hidden></div>
+    <script type="module" src="/overlay.js"></script>
+  </body>
+</html>

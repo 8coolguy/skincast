@@ -1,0 +1,25 @@
+{
+  "name": "skincast",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A local Minecraft VTuber studio and transparent OBS browser source",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/launch.cjs",
+    "dev": "node scripts/launch.cjs",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node test/browser.mjs"
+  },
+  "dependencies": {
+    "skinview3d": "3.4.2",
+    "ws": "8.22.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "playwright": "1.56.1"
+  }
+}

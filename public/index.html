@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#151719" />
+    <meta
+      name="description"
+      content="Turn your Minecraft skin into a mouse-tracked, voice-reactive OBS avatar."
+    />
+    <title>Skincast · Your skin, live</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Skincast home"
+        ><span class="brand-mark"><i></i><i></i><i></i><i></i></span
+        >skincast<span class="brand-tag">MINECRAFT AVATAR STUDIO</span></a
+      >
+      <div class="header-actions">
+        <span class="connection" id="connection"
+          ><span class="dot"></span
+          ><span id="connection-text">Connecting</span></span
+        ><a
+          class="button primary small"
+          href="/overlay"
+          target="_blank"
+          rel="noopener"
+          ><span data-icon="external"></span>Open overlay</a
+        >
+      </div>
+    </header>
+
+    <main class="studio">
+      <div class="page-intro">
+        <div>
+          <div class="eyebrow">A LITTLE MORE YOU, ON STREAM</div>
+          <h1>Your skin. <span>Your stream.</span></h1>
+          <p>
+            A Minecraft avatar that looks where you look and lights up when you
+            talk.
+          </p>
+        </div>
+        <span class="local-badge"
+          ><span data-icon="shield"></span>Runs on your computer</span
+        >
+      </div>
+
+      <div class="workspace">
+        <aside class="left-column">
+          <section class="card">
+            <div class="card-title">
+              <span data-icon="user"></span>
+              <h2>Your character</h2>
+              <span class="mini-tag">JAVA / PNG</span>
+            </div>
+            <label class="field-label" for="username">Minecraft username</label>
+            <form id="skin-form" class="input-group">
+              <input
+                id="username"
+                value="8coolguy"
+                maxlength="16"
+                spellcheck="false"
+                autocomplete="off"
+                required
+                aria-label="Minecraft username"
+              /><button
+                class="icon-button"
+                type="submit"
+                aria-label="Load Minecraft skin"
+                title="Load Minecraft skin"
+              >
+                <span data-icon="arrow"></span>
+              </button>
+            </form>
+            <div class="skin-identity">
+              <canvas
+                id="skin-face"
+                width="8"
+                height="8"
+                aria-label="Current skin face"
+              ></canvas>
+              <div>
+                <strong id="skin-name">8coolguy</strong
+                ><span id="skin-status">Loading your skin…</span>
+              </div>
+              <span class="identity-dot"></span>
+            </div>
+            <button class="button secondary full" id="upload-skin">
+              <span data-icon="upload"></span>Upload a skin PNG</button
+            ><input id="skin-file" type="file" accept="image/png" hidden />
+            <div class="model-row">
+              <label for="model">Arm model</label
+              ><select id="model" data-setting="model">
+                <option value="auto">Auto detect</option>
+                <option value="default">Classic</option>
+                <option value="slim">Slim</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="card tracking-card">
+            <div class="card-title">
+              <span data-icon="cursor"></span>
+              <h2>Movement</h2>
+            </div>
+            <label class="toggle-row" for="tracking"
+              ><span
+                >Follow my mouse<small
+                  >Head turns toward your cursor</small
+                ></span
+              ><input
+                class="toggle"
+                id="tracking"
+                type="checkbox"
+                data-setting="tracking"
+                checked
+            /></label>
+            <div class="helper-status" id="tracking-status">
+              <span class="dot"></span
+              ><span id="tracking-text">Starting desktop helper…</span>
+            </div>
+            <div class="range-field">
+              <label for="sensitivity"
+                >Look sensitivity<output id="sensitivity-value"
+                  >70%</output
+                ></label
+              ><input
+                id="sensitivity"
+                type="range"
+                data-setting="sensitivity"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="0.7"
+              />
+              <div class="range-ends">
+                <span>Subtle</span><span>Expressive</span>
+              </div>
+            </div>
+            <div class="range-field">
+              <label for="smoothing"
+                >Smoothing<output id="smoothing-value">78%</output></label
+              ><input
+                id="smoothing"
+                type="range"
+                data-setting="smoothing"
+                min="0"
+                max="0.95"
+                step="0.01"
+                value="0.78"
+              />
+              <div class="range-ends">
+                <span>Snappy</span><span>Floaty</span>
+              </div>
+            </div>
+            <label class="toggle-row separated" for="idle"
+              ><span>Idle animation<small>A little breathing room</small></span
+              ><input
+                class="toggle"
+                id="idle"
+                type="checkbox"
+                data-setting="idle"
+                checked
+            /></label>
+          </section>
+        </aside>
+
+        <section class="preview-panel" aria-label="Avatar preview">
+          <div class="preview-toolbar">
+            <span class="preview-title"
+              ><span class="dot"></span>LIVE PREVIEW</span
+            ><span id="preview-dimensions">800 × 800</span
+            ><button
+              class="icon-button"
+              id="reset-view"
+              title="Reset avatar framing"
+              aria-label="Reset avatar framing"
+            >
+              <span data-icon="reset"></span>
+            </button>
+          </div>
+          <div class="preview-scene checkerboard" id="preview-scene">
+            <div class="stage-corner top-left"></div>
+            <div class="stage-corner top-right"></div>
+            <div class="stage-corner bottom-left"></div>
+            <div class="stage-corner bottom-right"></div>
+            <div class="preview-label">
+              <span data-icon="layers"></span
+              ><span id="background-label">Transparent background</span>
+            </div>
+            <div id="avatar"></div>
+            <div class="avatar-error" id="avatar-error" hidden></div>
+            <div class="voice-pill" id="voice-pill">
+              <span class="voice-bars"><i></i><i></i><i></i></span
+              ><span id="voice-state">Mic is off</span>
+            </div>
+            <span class="stage-watermark">MAKE YOURSELF SEEN.</span>
+          </div>
+          <div class="preview-controls">
+            <div class="segmented" aria-label="Avatar framing">
+              <button data-framing="full" class="active" aria-pressed="true">
+                <span data-icon="user"></span>Full body</button
+              ><button data-framing="portrait" aria-pressed="false">
+                <span data-icon="portrait"></span>Portrait
+              </button>
+            </div>
+            <label class="zoom-control" for="zoom"
+              ><span data-icon="zoom"></span
+              ><input
+                id="zoom"
+                type="range"
+                data-setting="zoom"
+                min="0.5"
+                max="1.4"
+                step="0.01"
+                value="0.9"
+                aria-label="Avatar size"
+              /><output id="zoom-value">100%</output></label
+            >
+          </div>
+          <div class="preview-note">
+            <span data-icon="cursor"></span
+            ><span id="preview-note-text"
+              >Move your mouse anywhere on your screen.</span
+            ><button id="preview-track" aria-pressed="false">
+              Preview tracking
+            </button>
+          </div>
+        </section>
+
+        <aside class="right-column">
+          <section class="card voice-card">
+            <div class="card-title">
+              <span data-icon="mic"></span>
+              <h2>Voice reaction</h2>
+              <span class="status-tag" id="mic-tag">OFF</span>
+            </div>
+            <p class="card-description">Your voice brings your skin to life.</p>
+            <select id="microphone" aria-label="Microphone">
+              <option value="">Default microphone</option>
+            </select>
+            <button class="button primary full" id="mic-toggle">
+              <span data-icon="mic"></span
+              ><span id="mic-toggle-label">Enable microphone</span>
+            </button>
+            <div class="meter-header">
+              <span>INPUT LEVEL</span><span id="level-value">0%</span>
+            </div>
+            <div
+              class="audio-meter"
+              id="audio-meter"
+              role="meter"
+              aria-label="Microphone input level"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            >
+              <div id="meter-fill"></div>
+              <div id="threshold-marker"></div>
+            </div>
+            <div class="range-field voice-threshold">
+              <label for="threshold"
+                >Speaking threshold<output id="threshold-value"
+                  >6%</output
+                ></label
+              ><input
+                id="threshold"
+                type="range"
+                data-setting="threshold"
+                min="0.005"
+                max="0.4"
+                step="0.005"
+                value="0.055"
+              />
+              <div class="range-ends">
+                <span>Quiet voice</span><span>Loud room</span>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <label for="voiceIndicator">Speaking indicator</label>
+              <div>
+                <input
+                  class="color-input"
+                  id="voiceColor"
+                  type="color"
+                  data-setting="voiceColor"
+                  value="#a6efb4"
+                  aria-label="Speaking indicator color"
+                /><input
+                  class="toggle"
+                  id="voiceIndicator"
+                  type="checkbox"
+                  data-setting="voiceIndicator"
+                  checked
+                />
+              </div>
+            </div>
+            <p class="privacy-note">
+              <span data-icon="shield"></span>Only volume is shared. Audio stays
+              here.
+            </p>
+          </section>
+
+          <section class="card background-card">
+            <div class="card-title">
+              <span data-icon="image"></span>
+              <h2>Background</h2>
+            </div>
+            <div class="background-options" aria-label="Background type">
+              <button
+                class="background-option active"
+                data-background="transparent"
+                aria-pressed="true"
+              >
+                <span class="background-sample checkerboard"
+                  ><span data-icon="transparent"></span></span
+                ><span>Transparent</span></button
+              ><button
+                class="background-option"
+                data-background="color"
+                aria-pressed="false"
+              >
+                <span class="background-sample solid-sample"></span
+                ><span>Solid color</span></button
+              ><button
+                class="background-option"
+                data-background="image"
+                aria-pressed="false"
+              >
+                <span class="background-sample image-sample"
+                  ><span data-icon="image"></span></span
+                ><span>Image</span>
+              </button>
+            </div>
+            <div id="color-options" class="background-extra" hidden>
+              <label for="backgroundColor">Background color</label
+              ><input
+                class="color-input"
+                id="backgroundColor"
+                type="color"
+                data-setting="backgroundColor"
+                value="#b8addc"
+              /><span id="background-hex">#B8ADDC</span>
+            </div>
+            <button class="button secondary full" id="upload-background" hidden>
+              <span data-icon="upload"></span>Choose background image</button
+            ><input
+              id="background-file"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+            />
+            <p class="background-help" id="background-help">
+              The checkerboard stays out of your stream.
+            </p>
+          </section>
+        </aside>
+      </div>
+
+      <section class="obs-card">
+        <div class="obs-icon"><span data-icon="broadcast"></span></div>
+        <div class="obs-intro">
+          <h2>Ready for your next stream.</h2>
+          <p>Add a Browser source in OBS, then paste this URL.</p>
+        </div>
+        <div class="obs-url-group">
+          <label class="sr-only" for="overlay-url">OBS browser source URL</label
+          ><input
+            readonly
+            id="overlay-url"
+            value="http://127.0.0.1:3333/overlay"
+          /><button class="button secondary" id="copy-url">
+            <span data-icon="copy"></span><span id="copy-label">Copy URL</span>
+          </button>
+        </div>
+        <button
+          class="setup-toggle"
+          id="setup-toggle"
+          aria-expanded="false"
+          aria-controls="setup-guide"
+        >
+          Setup guide<span data-icon="chevron"></span>
+        </button>
+      </section>
+      <section class="setup-guide" id="setup-guide" hidden>
+        <ol>
+          <li>
+            In OBS, select <strong>Sources → + → Browser</strong> and name it
+            “Skincast”.
+          </li>
+          <li>
+            Paste the overlay URL. Set width and height to
+            <strong>800 × 800</strong>. Leave “Local file” unchecked.
+          </li>
+          <li>
+            Keep this studio tab open with the microphone enabled. Position and
+            resize the Browser source in your scene.
+          </li>
+          <li>
+            Choose Transparent above for a clean cutout. Changes here appear in
+            OBS automatically.
+          </li>
+        </ol>
+        <p>
+          First launch on macOS needs Xcode Command Line Tools to compile the
+          cursor helper. Windows uses PowerShell. Linux X11 needs xdotool and
+          Python 3. A game that locks the cursor to the center will center the
+          avatar’s gaze.
+        </p>
+      </section>
+      <footer>
+        <span><span class="footer-square"></span>BUILT FOR BLOCK PEOPLE.</span
+        ><span id="save-status">Changes save automatically</span
+        ><span>Skincast / local studio</span>
+      </footer>
+    </main>
+    <div class="toast" id="toast" role="status" hidden></div>
+    <script type="module" src="/studio.js"></script>
+  </body>
+</html>
