@@ -32,7 +32,7 @@ const audio = path.join(dataDir, "voice.wav");
 await writeFile(audio, wav);
 const app = await startServer({ port: 0, dataDir, cursor: false, quiet: true });
 const browser = await chromium.launch({
-  headless: true,
+  headless: process.env.SKINCAST_HEADED !== "1",
   args: [
     "--use-fake-device-for-media-stream",
     "--use-fake-ui-for-media-stream",
@@ -40,13 +40,16 @@ const browser = await chromium.launch({
   ],
 });
 const errors = [];
+let studio, overlay;
 try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1120 },
     permissions: ["microphone", "clipboard-read", "clipboard-write"],
   });
-  const studio = await context.newPage();
-  const overlay = await context.newPage();
+  studio = await context.newPage();
+  overlay = await context.newPage();
+  studio.setDefaultTimeout(10000);
+  overlay.setDefaultTimeout(10000);
   for (const page of [studio, overlay])
     page.on("pageerror", (err) => errors.push(err.message));
   await studio.goto(app.url);
@@ -97,15 +100,15 @@ try {
   await studio.waitForFunction(
     () => Number(document.querySelector("#avatar").dataset.gazeX) > 0.3,
   );
-  await studio.locator('[data-framing="portrait"]').click();
+  await studio.locator('button[data-framing="portrait"]').click();
   await studio.waitForFunction(
     () =>
       document
-        .querySelector('[data-framing="portrait"]')
+        .querySelector('button[data-framing="portrait"]')
         .getAttribute("aria-pressed") === "true",
   );
   await studio.locator("#reset-view").click();
-  await studio.locator('[data-background="color"]').click();
+  await studio.locator('button[data-background="color"]').click();
   await overlay.waitForFunction(
     () => document.querySelector("#avatar").dataset.background === "color",
   );
@@ -115,7 +118,7 @@ try {
       .evaluate((el) => getComputedStyle(el).backgroundColor),
     "rgb(184, 173, 220)",
   );
-  await studio.locator('[data-background="transparent"]').click();
+  await studio.locator('button[data-background="transparent"]').click();
   await overlay.waitForFunction(
     () =>
       document.querySelector("#avatar").dataset.background === "transparent",
@@ -133,7 +136,7 @@ try {
     await overlay.locator("#avatar").evaluate((el) => el.style.backgroundImage),
     /data:image\/png/,
   );
-  await studio.locator('[data-background="transparent"]').click();
+  await studio.locator('button[data-background="transparent"]').click();
   await studio.locator("#skin-file").setInputFiles("assets/8coolguy.png");
   await studio.waitForFunction(
     () => document.querySelector("#skin-name").textContent === "Custom skin",
@@ -240,7 +243,7 @@ try {
     });
   const idleWidth = await silhouetteWidth();
   for (const action of ["wave", "dance", "spin", "cheer"]) {
-    await studio.locator(`[data-action="${action}"]`).click();
+    await studio.locator(`button[data-action="${action}"]`).click();
     await overlay.waitForFunction(
       (action) => document.querySelector("#avatar").dataset.action === action,
       action,
@@ -257,52 +260,140 @@ try {
     }
     await studio.waitForTimeout(120);
   }
-  await studio.locator('[data-action="stop"]').click();
+  await studio.locator('button[data-action="stop"]').click();
   await overlay.waitForFunction(
     () => document.querySelector("#avatar").dataset.action === "idle",
   );
   await studio.locator("#idle").check();
   await studio.locator("#tracking").check();
-  await studio.locator('[data-stage="sandbox"]').click();
+  await studio.bringToFront();
+  await studio.locator('button[data-stage="sandbox"]').click();
+  await studio.waitForFunction(
+    () => document.querySelector("#avatar").dataset.view === "first-person",
+  );
   await overlay.waitForFunction(
     () => document.querySelector("#avatar").dataset.stageMode === "sandbox",
   );
+  assert.equal(
+    await overlay.locator("#avatar").getAttribute("data-view"),
+    "third-person",
+    "OBS must retain its independent avatar camera",
+  );
+  const headed = process.env.SKINCAST_HEADED === "1";
+  const dragLook = async (dx = 0, dy = 0) => {
+    await studio.locator("#preview-scene").scrollIntoViewIfNeeded();
+    const box = await studio.locator("#preview-scene").boundingBox();
+    await studio.mouse.move(box.x + 25, box.y + 120);
+    await studio.mouse.down();
+    if (dx || dy)
+      await studio.mouse.move(box.x + 25 + dx, box.y + 120 + dy, { steps: 4 });
+    await studio.mouse.up();
+  };
+  const enterView = async () => {
+    await studio.bringToFront();
+    await studio.locator("#enter-first-person").click();
+    if (headed)
+      await studio.waitForFunction(
+        () => document.pointerLockElement?.id === "preview-scene",
+      );
+    else {
+      await studio.waitForTimeout(150);
+      await dragLook();
+    }
+  };
   await studio.locator("#take-control").click();
   await studio.waitForFunction(
     () =>
       document.querySelector("#take-control").getAttribute("aria-pressed") ===
       "true",
   );
+  if (headed)
+    await studio.waitForFunction(
+      () => document.pointerLockElement?.id === "preview-scene",
+    );
+  else await studio.waitForTimeout(150);
+  const initialYaw = Number(
+    await studio.locator("#avatar").getAttribute("data-look-yaw"),
+  );
+  if (headed) await studio.mouse.move(640, 360);
+  else await dragLook(60, 15);
+  await studio.waitForFunction(
+    (initial) =>
+      Math.abs(
+        Number(document.querySelector("#avatar").dataset.lookYaw) - initial,
+      ) > 0.03,
+    initialYaw,
+  );
+  await studio.keyboard.press("Escape");
+  await studio.waitForFunction(
+    () =>
+      !document.pointerLockElement &&
+      !document.querySelector("#pov-prompt").hidden,
+  );
+  await studio.locator('button[data-action="reset"]').click();
+  await studio.waitForFunction(
+    () => document.querySelector("#avatar").dataset.lookPitch === "-0.550",
+  );
+  await enterView();
+  if (headed) {
+    await studio.mouse.down({ button: "right" });
+    await studio.mouse.up({ button: "right" });
+  } else await studio.keyboard.press("e");
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.blocks === "1",
+  );
+  await studio.waitForTimeout(150);
+  if (headed) {
+    await studio.mouse.down();
+    await studio.mouse.up();
+  } else await studio.keyboard.press("q");
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.blocks === "0",
+  );
+  await studio.waitForTimeout(150);
+  await studio.keyboard.press("3");
+  assert.equal(await studio.locator("#block-type").inputValue(), "wood");
+  if (headed) {
+    await studio.mouse.down({ button: "right" });
+    await studio.mouse.up({ button: "right" });
+  } else await studio.keyboard.press("e");
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.blocks === "1",
+  );
+  await studio.keyboard.down("w");
+  await overlay.waitForFunction(
+    () => Number(document.querySelector("#avatar").dataset.playerZ) > 0.3,
+  );
+  await studio.keyboard.up("w");
   await studio.keyboard.down("d");
   await overlay.waitForFunction(
-    () => Number(document.querySelector("#avatar").dataset.playerX) > 0.6,
+    () => Number(document.querySelector("#avatar").dataset.playerX) < -0.4,
   );
   await studio.keyboard.up("d");
   await studio.keyboard.press("Space");
   await overlay.waitForFunction(
     () => Number(document.querySelector("#avatar").dataset.playerY) > 0.1,
   );
-  await studio.keyboard.press("e");
   await overlay.waitForFunction(
-    () => document.querySelector("#avatar").dataset.blocks === "1",
+    () => Number(document.querySelector("#avatar").dataset.playerY) === 0,
   );
-  await studio.waitForTimeout(150);
-  await studio.keyboard.press("q");
-  await overlay.waitForFunction(
-    () => document.querySelector("#avatar").dataset.blocks === "0",
-  );
-  await studio.locator("#block-type").selectOption("wood");
-  await studio.waitForTimeout(150);
-  await studio.locator('[data-action="place"]').click();
-  await overlay.waitForFunction(
-    () => document.querySelector("#avatar").dataset.blocks === "1",
-  );
-  await studio.keyboard.down("s");
-  await overlay.waitForFunction(
-    () => Number(document.querySelector("#avatar").dataset.playerZ) > 0.2,
-  );
+  if (headed) {
+    await studio.keyboard.press("f");
+    await studio.waitForFunction(
+      () => document.fullscreenElement?.id === "preview-scene",
+    );
+    await studio.keyboard.press("f");
+    await studio.waitForFunction(() => !document.fullscreenElement);
+    if (!(await studio.evaluate(() => !!document.pointerLockElement)))
+      await enterView();
+  }
+  await studio
+    .locator("#preview-scene")
+    .screenshot({ path: "test-results/first-person.png" });
+  await studio.keyboard.down("w");
+  await studio.keyboard.press("Escape");
+  await studio.keyboard.up("w");
   await studio.locator("#username").focus();
-  await studio.keyboard.up("s");
   await studio.waitForTimeout(150);
   const stoppedZ = Number(
     await overlay.locator("#avatar").getAttribute("data-player-z"),
@@ -313,7 +404,10 @@ try {
       Number(await overlay.locator("#avatar").getAttribute("data-player-z")) -
         stoppedZ,
     ) < 0.01,
-    "Losing stage focus must stop movement",
+    "Pausing first-person control must stop movement",
+  );
+  const startingX = Number(
+    await overlay.locator("#avatar").getAttribute("data-player-x"),
   );
   const leftButton = studio.locator('[data-move="left"]');
   await leftButton.scrollIntoViewIfNeeded();
@@ -324,7 +418,9 @@ try {
   );
   await studio.mouse.down();
   await overlay.waitForFunction(
-    () => Number(document.querySelector("#avatar").dataset.playerX) < 0.4,
+    (start) =>
+      Number(document.querySelector("#avatar").dataset.playerX) > start + 0.2,
+    startingX,
   );
   await studio.mouse.up();
   const lateOverlay = await context.newPage();
@@ -332,8 +428,12 @@ try {
   await lateOverlay.waitForFunction(
     () => document.querySelector("#avatar").dataset.blocks === "1",
   );
+  assert.equal(
+    await lateOverlay.locator("#avatar").getAttribute("data-view"),
+    "third-person",
+  );
   await lateOverlay.close();
-  await studio.locator('[data-action="wave"]').click();
+  await studio.locator('button[data-action="wave"]').click();
   await overlay.waitForFunction(
     () => document.querySelector("#avatar").dataset.action === "wave",
   );
@@ -342,12 +442,10 @@ try {
     path: "test-results/sandbox-studio.png",
     fullPage: true,
   });
-  await overlay.bringToFront();
   await overlay.screenshot({
     path: "test-results/sandbox-overlay.png",
     omitBackground: true,
   });
-  await studio.bringToFront();
   await studio.locator("#take-control").click();
   await studio.waitForFunction(
     () =>
@@ -384,11 +482,33 @@ try {
   );
   assert.deepEqual(errors, [], "Browser must have no uncaught errors");
   console.log(
-    "Browser verification passed: real WebGL pixels and alpha, gaze, backgrounds, PNG upload, microphone, speaking styles and customization, preview-only effect test, gestures, sandbox movement and jumping, block tools, focus release, late overlay sync, clipboard, reload, mobile layout.",
+    `Browser verification passed: WebGL transparency, microphone and speaking styles, gestures, first-person ${headed ? "mouse capture, mouse-button building, and fullscreen" : "drag-to-look fallback"}, movement, jumping, crosshair building, pause/resume, independent OBS camera, late joins, reload, and mobile layout.`,
   );
   console.log(
-    "Screenshots: test-results/studio.png, test-results/overlay-speaking.png, test-results/mobile.png",
+    "Screenshots: test-results/first-person.png, test-results/sandbox-overlay.png, test-results/mobile.png",
   );
+} catch (error) {
+  if (studio && !studio.isClosed())
+    console.log(
+      "Studio failure state:",
+      await studio.evaluate(() => ({
+        active: document.activeElement.id,
+        control: document
+          .querySelector("#take-control")
+          .getAttribute("aria-pressed"),
+        locked: !!document.pointerLockElement,
+        focused: document.hasFocus(),
+        captureError:
+          document.querySelector("#preview-scene").dataset.captureError,
+        view: { ...document.querySelector("#avatar").dataset },
+        error: document.querySelector("#toast").textContent,
+      })),
+    );
+  console.log(
+    "Shared world at failure:",
+    (await (await fetch(`${app.url}/api/state`)).json()).play,
+  );
+  throw error;
 } finally {
   await browser.close();
   await app.close();

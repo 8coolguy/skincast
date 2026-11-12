@@ -198,7 +198,6 @@ export async function startServer({
     );
   });
   wss.on("connection", (ws) => {
-    let lastCommand = 0;
     ws.send(JSON.stringify(state()));
     ws.on("message", (raw) => {
       try {
@@ -236,9 +235,7 @@ export async function startServer({
           if (typeof message.action !== "string")
             throw new Error("Choose an avatar action.");
           const now = Date.now();
-          if (now - lastCommand < 100) return;
           sandbox.command(message.action, message.blockType, now);
-          lastCommand = now;
         } else if (message.type === "voice-start") {
           if (micOwner && micOwner !== ws)
             return ws.send(

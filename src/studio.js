@@ -59,15 +59,19 @@ function toast(message, error = false) {
 }
 
 try {
-  avatar = createAvatar($("avatar"), (message) => {
-    $("avatar-error").textContent = message || "";
-    $("avatar-error").hidden = !message;
-    $("skin-status").textContent = message
-      ? "Skin could not be loaded"
-      : settings?.skinSource.startsWith("data:")
-        ? "Custom skin · ready to stream"
-        : "Skin loaded · ready to stream";
-  });
+  avatar = createAvatar(
+    $("avatar"),
+    (message) => {
+      $("avatar-error").textContent = message || "";
+      $("avatar-error").hidden = !message;
+      $("skin-status").textContent = message
+        ? "Skin could not be loaded"
+        : settings?.skinSource.startsWith("data:")
+          ? "Custom skin · ready to stream"
+          : "Skin loaded · ready to stream";
+    },
+    { firstPerson: true },
+  );
 } catch {
   $("avatar-error").textContent =
     "3D rendering is unavailable. Enable hardware acceleration in your browser, then reload.";
@@ -139,7 +143,6 @@ async function updateFace(source) {
 function renderSettings(next) {
   settings = next;
   avatar?.configure(settings);
-  playground?.configure(settings);
   $("voice-count-field").hidden = settings.voiceStyle === "ring";
   document.querySelectorAll("[data-setting]").forEach((el) => {
     if (document.activeElement === el && el.type === "range") return;
@@ -153,12 +156,12 @@ function renderSettings(next) {
     ? "Custom skin"
     : settings.username;
   updateFace(settings.skinSource);
-  document.querySelectorAll("[data-framing]").forEach((el) => {
+  document.querySelectorAll("button[data-framing]").forEach((el) => {
     const active = el.dataset.framing === settings.framing;
     el.classList.toggle("active", active);
     el.setAttribute("aria-pressed", active);
   });
-  document.querySelectorAll("[data-background]").forEach((el) => {
+  document.querySelectorAll("button[data-background]").forEach((el) => {
     const active = el.dataset.background === settings.background;
     el.classList.toggle("active", active);
     el.setAttribute("aria-pressed", active);
@@ -183,6 +186,7 @@ function renderSettings(next) {
     image: "The image fills the source and crops to fit.",
   }[settings.background];
   $("threshold-marker").style.left = `${settings.threshold * 100}%`;
+  playground?.configure(settings);
   updateVoice();
 }
 
@@ -250,7 +254,10 @@ const connection = connect(
       playground?.update(message.play);
     }
     if (message.type === "control") playground?.control(message.owned);
-    if (message.type === "control-busy") toast(message.message, true);
+    if (message.type === "control-busy") {
+      playground?.control(false);
+      toast(message.message, true);
+    }
     if (message.type === "pointer") {
       lastPointer = { x: message.x, y: message.y };
       if (!previewTracking) avatar?.setInput(lastPointer);
@@ -281,7 +288,12 @@ const connection = connect(
     }
   },
 );
-playground = createPlayground((message) => connection.send(message), save);
+playground = createPlayground(
+  (message) => connection.send(message),
+  save,
+  (look) => avatar?.setLook(look),
+  () => avatar?.swing(),
+);
 $("test-voice").addEventListener("click", () => avatar?.testVoice());
 $("reset-voice").addEventListener("click", () =>
   save({
@@ -335,11 +347,11 @@ document.querySelectorAll("[data-setting]").forEach((el) => {
   );
 });
 document
-  .querySelectorAll("[data-framing]")
+  .querySelectorAll("button[data-framing]")
   .forEach((el) =>
     el.addEventListener("click", () => save({ framing: el.dataset.framing })),
   );
-document.querySelectorAll("[data-background]").forEach((el) =>
+document.querySelectorAll("button[data-background]").forEach((el) =>
   el.addEventListener("click", () => {
     if (el.dataset.background === "image" && !settings?.backgroundImage)
       $("background-file").click();

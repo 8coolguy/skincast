@@ -60,27 +60,28 @@ test("sandbox movement is bounded, blocks collide, jumping lands, and stale keys
   const move = (x, z, count) => {
     for (let i = 0; i < count; i++) {
       now += 1000 / 30;
-      game.input({ x, z, sprint: false }, now);
+      game.input({ x, z, sprint: false, yaw: Math.PI, pitch: -1 }, now);
       game.tick(1 / 30, now);
     }
   };
+  game.input({ x: 0, z: 0, sprint: false, yaw: Math.PI, pitch: -1 }, now);
   game.command("place", "stone", now);
   assert.deepEqual(game.snapshot(now).blocks, [{ x: 0, z: 1, type: "stone" }]);
-  move(0, 1, 30);
+  move(0, -1, 30);
   assert.ok(
     game.snapshot(now).z < 0.25,
     "A solid block must stop the player before overlap",
   );
   game.command("jump", null, now);
-  move(0, 1, 15);
+  move(0, -1, 15);
   assert.ok(game.snapshot(now).y >= 1, "A jump must clear a block");
   move(0, 0, 40);
   assert.equal(game.snapshot(now).y, 1, "Player lands on the block top");
   game.command("reset", null, now);
   move(1, 0, 100);
-  assert.equal(game.snapshot(now).x, 3.15);
+  assert.equal(game.snapshot(now).x, -3.15);
   game.command("reset", null, now);
-  game.input({ x: 1, z: 0, sprint: false }, now);
+  game.input({ x: 1, z: 0, sprint: false, yaw: Math.PI, pitch: -1 }, now);
   game.tick(0.05, now + 500);
   assert.equal(
     game.snapshot(now + 500).x,
@@ -133,7 +134,7 @@ test("sandbox has one controller and synchronizes blocks and actions to overlays
   const built = (
     await overlay.next("play", (item) => item.play.blocks.length === 1)
   ).play;
-  assert.deepEqual(built.blocks, [{ x: 0, z: 1, type: "wood" }]);
+  assert.deepEqual(built.blocks, [{ x: 0, z: 2, type: "wood" }]);
   const fresh = client(app.url);
   assert.equal((await fresh.next("state")).play.blocks[0].type, "wood");
   await new Promise((resolve) => setTimeout(resolve, 120));

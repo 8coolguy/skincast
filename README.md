@@ -57,21 +57,26 @@ Custom skins can use classic or slim arms. Auto detect works for standard skins.
 
 The actions panel below the preview has **Wave**, **Dance**, **Spin**, **Cheer**, and **Jump** buttons. These actions appear in the OBS overlay. **Stop action** ends a gesture. You can use gestures in the normal avatar view or on the island.
 
-To explore the island, select **Sandbox**, then click **Take control**. The preview receives keyboard focus. Click it again after using another control to resume keyboard input.
+To explore the island, select **Sandbox**, then click **Click to play** in the view or **Take control** below it. You see through the avatar's eyes and use the mouse to look around. OBS keeps its separate third-person camera, so viewers can still see your skin and speaking effect.
 
 | Key | Action |
 | --- | --- |
-| WASD or arrow keys | Walk |
+| Mouse | Look around |
+| WASD or arrow keys | Walk relative to the direction you face |
 | Shift | Run while moving |
 | Space | Jump |
-| 1, 2, 3, 4 | Wave, dance, spin, cheer |
-| E | Place the selected block ahead |
-| Q | Remove the highlighted block |
-| Escape | Release control |
+| 1, 2, 3 or mouse wheel | Select grass, stone, or wood |
+| 4, 5, 6, 7 | Wave, dance, spin, cheer |
+| Right click or E | Place the selected block at the crosshair |
+| Left click or Q | Remove the block at the crosshair |
+| F | Toggle fullscreen |
+| Escape | Pause and release the mouse |
 
-Choose grass, stone, or wood in **Build with**. The highlighted tile is the target for building and removal. Solid blocks stop movement, and you can jump onto them. Use the on-screen arrow buttons if you prefer pointer or touch controls.
+Aim with the crosshair. The outline marks the nearest block within reach. Aim at empty ground to build there, or at a block's side to build beside it. The island has one building layer, so aiming at a block's top does not stack another block. The island floor cannot be removed. Solid blocks stop movement, and you can jump onto them.
 
-Keyboard controls work only while the preview has focus. Switching focus stops movement. Only one studio tab can take control at a time. Closing that tab releases control. Your microphone and speaking effect continue working during play.
+Press **Escape** to pause before changing studio settings. **Resume first person** captures the mouse again. Click **Release control** to let another studio tab take over. Only one tab can control the avatar at a time. Closing it releases control. The microphone and speaking effect continue working during play.
+
+If mouse capture is unavailable, drag inside the view to look around and use E and Q to build or remove blocks. Touch users can drag to look and hold the on-screen arrow buttons to move. In the normal **Avatar** view, keys 1–4 still trigger gestures while the preview has focus.
 
 **Reset island** clears placed blocks and returns the avatar to the center. **Avatar** returns to the normal stream framing. The island has a fixed 7 × 7 floor and one layer of placeable blocks. It has no inventory, crafting, mining timer, or combat. The shared island survives page refreshes and mode changes, and resets when you restart the server. Saved speaking and background settings survive server restarts.
 
@@ -96,7 +101,9 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The browser check uses a real WebGL canvas and synthetic microphone audio. It checks alpha transparency, tracking, framing, backgrounds, uploads, speaking customization, gestures, sandbox movement, jumping, block tools, focus release, overlay synchronization, page reloads, clipboard copying, and the mobile layout. Server tests cover collisions, landing on blocks, island bounds, stale keys, and controller ownership. Screenshots go to `test-results/`.
+To verify mouse capture, mouse-button building, and fullscreen in a regular Chromium window, run `SKINCAST_HEADED=1 npm run test:browser`. The default headless run checks the drag-to-look fallback because headless Chromium on macOS refuses pointer lock.
+
+The browser check uses a real WebGL canvas and synthetic microphone audio. It checks alpha transparency, tracking, framing, backgrounds, uploads, speaking customization, gestures, first-person camera movement, block aiming, jumping, pause behavior, the independent OBS camera, overlay synchronization, page reloads, clipboard copying, and the mobile layout. Server tests cover ray intersections and reach, movement relative to gaze, collisions, landing on blocks, bounds, stale keys, and controller ownership. Screenshots go to `test-results/`.
 
 The macOS helper was compiled and exercised on this computer. Windows and Linux helpers need verification on their respective desktops. Live OBS composition and hardware microphone permission still need a manual check.
 
