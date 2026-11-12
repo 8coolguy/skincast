@@ -2,7 +2,17 @@ const { spawnSync, spawn } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
 
-const entry = path.join(__dirname, "start.mjs");
+const commands = {
+  start: ["scripts/start.mjs"],
+  build: ["scripts/build.mjs"],
+  test: ["--test", ...fs.readdirSync(path.join(__dirname, "../test")).filter((name) => name.endsWith(".test.mjs")).map((name) => `test/${name}`)],
+  browser: ["test/browser.mjs"],
+};
+const task = process.argv[2] || "start";
+if (!Object.prototype.hasOwnProperty.call(commands, task)) {
+  console.error(`Unknown task: ${task}`);
+  process.exit(1);
+}
 const candidates = [
   process.execPath,
   ...(process.env.PATH || "")
@@ -27,7 +37,7 @@ if (!node) {
   );
   process.exit(1);
 }
-const child = spawn(node, [entry], {
+const child = spawn(node, commands[task], {
   stdio: "inherit",
   cwd: path.join(__dirname, ".."),
 });

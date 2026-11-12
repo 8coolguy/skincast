@@ -78,6 +78,6 @@ The macOS helper was compiled and exercised on this computer. Windows and Linux 
 
 ## Project notes
 
-The app binds only to `127.0.0.1`. It uses local WebSockets for cursor position, volume, and settings. The launcher uses a Node.js 22+ runtime from your PATH when an older Node version is the default.
+The app binds only to `127.0.0.1`. It uses local WebSockets for cursor position, volume, and settings. Start, build, and test commands use a Node.js 22+ runtime from your PATH when an older Node version is the default.
 
 See [the architecture notes](docs/design.md) for the module boundaries and design tradeoffs. The 3D renderer uses [skinview3d](https://github.com/bs-community/skinview3d), which is MIT licensed. The included skin was downloaded for the requested `8coolguy` Minecraft profile on November 11, 2026. This project is not affiliated with Mojang or Microsoft.

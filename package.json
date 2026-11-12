@@ -8,11 +8,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "node scripts/launch.cjs build",
     "start": "node scripts/launch.cjs",
     "dev": "node scripts/launch.cjs",
-    "test": "node --test test/*.test.mjs",
-    "test:browser": "node test/browser.mjs"
+    "test": "node scripts/launch.cjs test",
+    "test:browser": "node scripts/launch.cjs browser"
   },
   "dependencies": {
     "skinview3d": "3.4.2",
