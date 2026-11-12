@@ -57,6 +57,10 @@ export function createPlayground(
   };
   const input = () => {
     if (!owned || !online) return;
+    const active =
+      document.hasFocus() &&
+      document.activeElement === stage &&
+      (isLocked() || dragLook || held.size > 0);
     send({
       type: "game-input",
       x: Number(held.has("right")) - Number(held.has("left")),
@@ -64,6 +68,7 @@ export function createPlayground(
       sprint: held.has("sprint"),
       yaw,
       pitch,
+      active,
     });
   };
   const look = (dx, dy) => {
@@ -205,8 +210,8 @@ export function createPlayground(
   document.addEventListener("pointerlockchange", () => {
     const current = isLocked();
     if (wasLocked && !current) {
-      release();
       dragLook = false;
+      release();
     }
     wasLocked = current;
     render();
@@ -316,9 +321,9 @@ export function createPlayground(
       command(action);
     }
     if (event.code === "Escape" && owned) {
-      release();
       dragLook = false;
       unlock();
+      release();
       render();
     }
   });

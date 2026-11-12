@@ -260,7 +260,8 @@ const connection = connect(
     }
     if (message.type === "pointer") {
       lastPointer = { x: message.x, y: message.y };
-      if (!previewTracking) avatar?.setInput(lastPointer);
+      if (!previewTracking || settings?.stageMode === "sandbox")
+        avatar?.setInput(lastPointer);
     }
     if (message.type === "tracking") updateTracking(message.tracking);
     if (message.type === "voice") {
@@ -317,7 +318,10 @@ function updateTracking(tracking) {
     ? `Desktop tracking · ${tracking.message}`
     : tracking.message;
   $("tracking-status").title = tracking.message;
-  if (!tracking.connected && !previewTracking) {
+  if (
+    !tracking.connected &&
+    (!previewTracking || settings?.stageMode === "sandbox")
+  ) {
     lastPointer = { x: 0, y: 0 };
     avatar?.setInput(lastPointer);
   }
@@ -531,7 +535,7 @@ $("preview-track").addEventListener("click", () => {
   if (!previewTracking) avatar?.setInput(lastPointer);
 });
 $("preview-scene").addEventListener("pointermove", (event) => {
-  if (!previewTracking) return;
+  if (!previewTracking || settings?.stageMode === "sandbox") return;
   const rect = $("preview-scene").getBoundingClientRect();
   avatar?.setInput({
     x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -539,7 +543,8 @@ $("preview-scene").addEventListener("pointermove", (event) => {
   });
 });
 $("preview-scene").addEventListener("pointerleave", () => {
-  if (previewTracking) avatar?.setInput({ x: 0, y: 0 });
+  if (previewTracking && settings?.stageMode !== "sandbox")
+    avatar?.setInput({ x: 0, y: 0 });
 });
 $("copy-url").addEventListener("click", async () => {
   try {

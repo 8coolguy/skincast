@@ -76,6 +76,8 @@ Aim with the crosshair. The outline marks the nearest block within reach. Aim at
 
 Press **Escape** to pause before changing studio settings. **Resume first person** captures the mouse again. Click **Release control** to let another studio tab take over. Only one tab can control the avatar at a time. Closing it releases control. The microphone and speaking effect continue working during play.
 
+When you are paused or have released control, the sandbox avatar follows your desktop cursor. The first-person view also responds to cursor movement. This uses **Follow my mouse**, **Look sensitivity**, and **Smoothing** from the Movement card. Cursor following changes the pose and view without walking or editing blocks. Direct mouse-look takes priority when you resume play.
+
 If mouse capture is unavailable, drag inside the view to look around and use E and Q to build or remove blocks. Touch users can drag to look and hold the on-screen arrow buttons to move. In the normal **Avatar** view, keys 1–4 still trigger gestures while the preview has focus.
 
 **Reset island** clears placed blocks and returns the avatar to the center. **Avatar** returns to the normal stream framing. The island has a fixed 7 × 7 floor and one layer of placeable blocks. It has no inventory, crafting, mining timer, or combat. The shared island survives page refreshes and mode changes, and resets when you restart the server. Saved speaking and background settings survive server restarts.

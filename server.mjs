@@ -26,6 +26,8 @@ export async function startServer({
   cursor = true,
   quiet = false,
   skinFetcher = fetchSkin,
+  cursorSource = startCursor,
+  initialWorld,
 } = {}) {
   await mkdir(dataDir, { recursive: true });
   const settingsPath = path.join(dataDir, "settings.json");
@@ -47,7 +49,7 @@ export async function startServer({
   let micOwner = null;
   let micTimestamp = 0;
   let writeQueue = Promise.resolve();
-  const sandbox = createSandbox();
+  const sandbox = createSandbox(initialWorld);
   sandbox.setMode(settings.stageMode);
   let controlOwner = null;
   const wss = new WebSocketServer({ noServer: true, maxPayload: 2048 });
@@ -297,7 +299,7 @@ export async function startServer({
     server.listen(port, "127.0.0.1", resolve);
   });
   const cursorPromise = cursor
-    ? startCursor(
+    ? cursorSource(
         root,
         (value) => {
           pointer = value;

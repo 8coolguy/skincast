@@ -30,7 +30,17 @@ for (let i = 0; i < samples; i++)
   );
 const audio = path.join(dataDir, "voice.wav");
 await writeFile(audio, wav);
-const app = await startServer({ port: 0, dataDir, cursor: false, quiet: true });
+let moveCursor;
+const app = await startServer({
+  port: 0,
+  dataDir,
+  quiet: true,
+  cursorSource: async (_root, onPosition, onStatus) => {
+    moveCursor = onPosition;
+    onStatus({ connected: true, message: "Test desktop" });
+    return () => {};
+  },
+});
 const browser = await chromium.launch({
   headless: process.env.SKINCAST_HEADED !== "1",
   args: [
@@ -279,6 +289,59 @@ try {
     "third-person",
     "OBS must retain its independent avatar camera",
   );
+  const cameraPixels = () =>
+    studio.locator("#avatar canvas").evaluate((canvas) => {
+      const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+      const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+      gl.readPixels(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        pixels,
+      );
+      let hash = 0;
+      for (let i = 0; i < pixels.length; i += 4)
+        hash =
+          (Math.imul(hash, 31) +
+            pixels[i] +
+            pixels[i + 1] +
+            pixels[i + 2] +
+            pixels[i + 3]) |
+          0;
+      return hash;
+    });
+  const passiveCamera = await cameraPixels();
+  moveCursor({ x: 0.9, y: -0.6 });
+  await overlay.waitForFunction(
+    () => Number(document.querySelector("#avatar").dataset.headYaw) > 0.5,
+  );
+  await studio.waitForFunction(
+    () =>
+      Math.abs(
+        Number(document.querySelector("#avatar").dataset.lookYaw) + Math.PI,
+      ) > 0.4,
+  );
+  assert.notEqual(
+    await cameraPixels(),
+    passiveCamera,
+    "Desktop cursor movement must change the rendered passive sandbox view",
+  );
+  const passiveState = (await (await fetch(`${app.url}/api/state`)).json())
+    .play;
+  assert.equal(passiveState.x, 0);
+  assert.equal(passiveState.z, 0);
+  assert.equal(passiveState.blocks.length, 0);
+  await studio.locator("#tracking").uncheck();
+  await overlay.waitForFunction(
+    () =>
+      Math.abs(Number(document.querySelector("#avatar").dataset.headYaw)) <
+      0.01,
+  );
+  await studio.locator("#tracking").check();
+  moveCursor({ x: 0, y: 0 });
   const headed = process.env.SKINCAST_HEADED === "1";
   const dragLook = async (dx = 0, dy = 0) => {
     await studio.locator("#preview-scene").scrollIntoViewIfNeeded();
@@ -312,6 +375,21 @@ try {
       () => document.pointerLockElement?.id === "preview-scene",
     );
   else await studio.waitForTimeout(150);
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.lookSource === "controls",
+  );
+  moveCursor({ x: 0.9, y: -0.6 });
+  assert.equal(
+    (await (await fetch(`${app.url}/api/state`)).json()).pointer.x,
+    0.9,
+  );
+  await studio.waitForTimeout(200);
+  assert.equal(
+    await overlay.locator("#avatar").getAttribute("data-head-yaw"),
+    "0.000",
+    "Desktop cursor must not override direct mouse-look",
+  );
+  moveCursor({ x: 0, y: 0 });
   const initialYaw = Number(
     await studio.locator("#avatar").getAttribute("data-look-yaw"),
   );
@@ -330,6 +408,19 @@ try {
       !document.pointerLockElement &&
       !document.querySelector("#pov-prompt").hidden,
   );
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.lookSource === "cursor",
+  );
+  moveCursor({ x: -0.9, y: 0.4 });
+  await overlay.waitForFunction(
+    () => Number(document.querySelector("#avatar").dataset.headYaw) < -0.5,
+  );
+  assert.equal(
+    (await (await fetch(`${app.url}/api/state`)).json()).play.controlled,
+    true,
+    "Paused control ownership must still permit cursor following",
+  );
+  moveCursor({ x: 0, y: 0 });
   await studio.locator('button[data-action="reset"]').click();
   await studio.waitForFunction(
     () => document.querySelector("#avatar").dataset.lookPitch === "-0.550",
@@ -451,6 +542,10 @@ try {
     () =>
       document.querySelector("#take-control").getAttribute("aria-pressed") ===
       "false",
+  );
+  moveCursor({ x: 0.8, y: 0 });
+  await overlay.waitForFunction(
+    () => Number(document.querySelector("#avatar").dataset.headYaw) > 0.4,
   );
   await studio.locator("#setup-toggle").click();
   assert.equal(await studio.locator("#setup-guide").isVisible(), true);

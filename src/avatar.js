@@ -76,9 +76,13 @@ export function createAvatar(
     const delta = Math.min((now - last) / 1000, 0.1);
     last = now;
     if (settings) {
+      const sandbox = settings.stageMode === "sandbox";
+      const directLook = sandbox && play.active;
       const blend = 1 - Math.pow(settings.smoothing, delta * 60);
-      const targetX = settings.tracking ? input.x * settings.sensitivity : 0;
-      const targetY = settings.tracking ? input.y * settings.sensitivity : 0;
+      const targetX =
+        settings.tracking && !directLook ? input.x * settings.sensitivity : 0;
+      const targetY =
+        settings.tracking && !directLook ? input.y * settings.sensitivity : 0;
       x += (targetX - x) * blend;
       y += (targetY - y) * blend;
       const demo = now < testUntil;
@@ -88,23 +92,22 @@ export function createAvatar(
         ((talking ? Math.min(1, level * 3 + 0.3) : 0) - voice) *
         (1 - Math.exp(-delta * (talking ? 22 : 1 / settings.voiceRelease)));
       const t = now / 1000;
-      const sandbox = settings.stageMode === "sandbox";
       const pov = firstPerson && sandbox;
       island.update(play, sandbox);
       viewer.playerObject.visible = !pov;
       hand.visible = pov && container.dataset.skinLoaded === "true";
       viewer.playerObject.scale.setScalar(sandbox ? 0.2 : 1);
       skin.head.rotation.set(
-        sandbox ? -play.pitch : y * 0.55,
-        sandbox ? 0 : x * 0.85,
-        sandbox ? 0 : -x * 0.05,
+        (sandbox ? -play.pitch : 0) + (directLook ? 0 : y * 0.55),
+        directLook ? 0 : x * 0.85,
+        directLook ? 0 : -x * 0.05,
       );
       viewer.playerObject.rotation.set(
         0,
         sandbox ? play.heading : -0.12 + x * 0.23,
         0,
       );
-      skin.body.rotation.set(0, 0, -x * 0.045);
+      skin.body.rotation.set(0, 0, directLook ? 0 : -x * 0.045);
       const stride = sandbox && play.moving ? Math.sin(t * 12) * 0.75 : 0;
       skin.leftLeg.rotation.x = stride;
       skin.rightLeg.rotation.x = -stride;
@@ -146,10 +149,16 @@ export function createAvatar(
       }
       speech.animate(voice, t, settings);
       if (pov) {
-        const look = lookOverride || {
+        const gameLook = lookOverride || {
           yaw: play.heading - Math.PI,
           pitch: play.pitch,
         };
+        const look = directLook
+          ? gameLook
+          : {
+              yaw: play.heading - Math.PI - x * 0.85,
+              pitch: Math.max(-1.3, Math.min(1.3, play.pitch - y * 0.55)),
+            };
         viewer.camera.position.set(
           play.x * 4,
           -8 + (play.y + eyeHeight) * 4,
@@ -169,6 +178,9 @@ export function createAvatar(
       container.dataset.speaking = String(talking);
       container.dataset.gazeX = x.toFixed(3);
       container.dataset.gazeY = y.toFixed(3);
+      container.dataset.lookSource = directLook ? "controls" : "cursor";
+      container.dataset.headYaw = skin.head.rotation.y.toFixed(3);
+      container.dataset.headPitch = skin.head.rotation.x.toFixed(3);
       container.dataset.stageMode = settings.stageMode;
       container.dataset.view = pov ? "first-person" : "third-person";
       container.dataset.action = action?.name || "idle";

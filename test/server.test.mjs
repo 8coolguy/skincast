@@ -60,11 +60,17 @@ test("sandbox movement is bounded, blocks collide, jumping lands, and stale keys
   const move = (x, z, count) => {
     for (let i = 0; i < count; i++) {
       now += 1000 / 30;
-      game.input({ x, z, sprint: false, yaw: Math.PI, pitch: -1 }, now);
+      game.input(
+        { x, z, sprint: false, active: true, yaw: Math.PI, pitch: -1 },
+        now,
+      );
       game.tick(1 / 30, now);
     }
   };
-  game.input({ x: 0, z: 0, sprint: false, yaw: Math.PI, pitch: -1 }, now);
+  game.input(
+    { x: 0, z: 0, sprint: false, active: true, yaw: Math.PI, pitch: -1 },
+    now,
+  );
   game.command("place", "stone", now);
   assert.deepEqual(game.snapshot(now).blocks, [{ x: 0, z: 1, type: "stone" }]);
   move(0, -1, 30);
@@ -81,7 +87,10 @@ test("sandbox movement is bounded, blocks collide, jumping lands, and stale keys
   move(1, 0, 100);
   assert.equal(game.snapshot(now).x, -3.15);
   game.command("reset", null, now);
-  game.input({ x: 1, z: 0, sprint: false, yaw: Math.PI, pitch: -1 }, now);
+  game.input(
+    { x: 1, z: 0, sprint: false, active: true, yaw: Math.PI, pitch: -1 },
+    now,
+  );
   game.tick(0.05, now + 500);
   assert.equal(
     game.snapshot(now + 500).x,
@@ -93,7 +102,7 @@ test("sandbox movement is bounded, blocks collide, jumping lands, and stale keys
   game.tick(0.03, now + 4100);
   assert.equal(game.snapshot(now + 4100).action, null);
   assert.throws(
-    () => game.input({ x: 100, z: 0, sprint: true }, now),
+    () => game.input({ x: 100, z: 0, sprint: true, active: true }, now),
     /Invalid movement/,
   );
 });
@@ -128,7 +137,7 @@ test("sandbox has one controller and synchronizes blocks and actions to overlays
   assert.equal((await studio.next("control")).owned, true);
   overlay.send({ type: "control-start" });
   await overlay.next("control-busy");
-  overlay.send({ type: "game-input", x: 1, z: 0, sprint: false });
+  overlay.send({ type: "game-input", x: 1, z: 0, sprint: false, active: true });
   await overlay.next("error");
   studio.send({ type: "game-command", action: "place", blockType: "wood" });
   const built = (
