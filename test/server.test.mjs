@@ -7,6 +7,7 @@ import { WebSocket } from "ws";
 import { startServer } from "../server.mjs";
 import { validateSettings } from "../lib/settings.mjs";
 import { fetchSkin } from "../lib/skins.mjs";
+import { createSandbox } from "../lib/sandbox.mjs";
 
 function client(url) {
   const socket = new WebSocket(url.replace("http:", "ws:") + "/events");
@@ -37,12 +38,132 @@ test("settings reject invalid external values and keep source tied to username",
     { skinSource: "https://example.com/skin.png" },
     { username: "other" },
     { unknown: true },
+    { voiceStyle: "fireworks" },
+    { voiceSize: 9 },
+    { voiceCount: 3.5 },
+    { voiceOpacity: -1 },
+    { stageMode: "minecraft" },
   ])
     assert.throws(() => validateSettings(patch));
   assert.equal(
     validateSettings({ skinSource: "/api/skin/8coolguy?v=1794450000000" })
       .username,
     "8coolguy",
+  );
+});
+
+test("sandbox movement is bounded, blocks collide, jumping lands, and stale keys stop", () => {
+  const game = createSandbox();
+  game.setMode("sandbox");
+  game.control(true);
+  let now = 10000;
+  const move = (x, z, count) => {
+    for (let i = 0; i < count; i++) {
+      now += 1000 / 30;
+      game.input({ x, z, sprint: false }, now);
+      game.tick(1 / 30, now);
+    }
+  };
+  game.command("place", "stone", now);
+  assert.deepEqual(game.snapshot(now).blocks, [{ x: 0, z: 1, type: "stone" }]);
+  move(0, 1, 30);
+  assert.ok(
+    game.snapshot(now).z < 0.25,
+    "A solid block must stop the player before overlap",
+  );
+  game.command("jump", null, now);
+  move(0, 1, 15);
+  assert.ok(game.snapshot(now).y >= 1, "A jump must clear a block");
+  move(0, 0, 40);
+  assert.equal(game.snapshot(now).y, 1, "Player lands on the block top");
+  game.command("reset", null, now);
+  move(1, 0, 100);
+  assert.equal(game.snapshot(now).x, 3.15);
+  game.command("reset", null, now);
+  game.input({ x: 1, z: 0, sprint: false }, now);
+  game.tick(0.05, now + 500);
+  assert.equal(
+    game.snapshot(now + 500).x,
+    0,
+    "Stale held keys cannot keep walking",
+  );
+  game.command("dance", null, now);
+  assert.ok(Math.abs(game.snapshot(now + 2000).action.progress - 0.5) < 1e-8);
+  game.tick(0.03, now + 4100);
+  assert.equal(game.snapshot(now + 4100).action, null);
+  assert.throws(
+    () => game.input({ x: 100, z: 0, sprint: true }, now),
+    /Invalid movement/,
+  );
+});
+
+test("sandbox has one controller and synchronizes blocks and actions to overlays and reconnects", async (t) => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), "skincast-sandbox-"));
+  const app = await startServer({
+    port: 0,
+    dataDir,
+    cursor: false,
+    quiet: true,
+  });
+  t.after(async () => {
+    await app.close();
+    await rm(dataDir, { recursive: true, force: true });
+  });
+  const studio = client(app.url),
+    overlay = client(app.url);
+  await Promise.all([studio.next("state"), overlay.next("state")]);
+  await fetch(`${app.url}/api/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      stageMode: "sandbox",
+      voiceStyle: "ring",
+      voicePlacement: "above",
+      voiceSize: 1.7,
+    }),
+  });
+  assert.equal((await overlay.next("settings")).settings.voiceStyle, "ring");
+  studio.send({ type: "control-start" });
+  assert.equal((await studio.next("control")).owned, true);
+  overlay.send({ type: "control-start" });
+  await overlay.next("control-busy");
+  overlay.send({ type: "game-input", x: 1, z: 0, sprint: false });
+  await overlay.next("error");
+  studio.send({ type: "game-command", action: "place", blockType: "wood" });
+  const built = (
+    await overlay.next("play", (item) => item.play.blocks.length === 1)
+  ).play;
+  assert.deepEqual(built.blocks, [{ x: 0, z: 1, type: "wood" }]);
+  const fresh = client(app.url);
+  assert.equal((await fresh.next("state")).play.blocks[0].type, "wood");
+  await new Promise((resolve) => setTimeout(resolve, 120));
+  studio.send({ type: "game-command", action: "wave" });
+  assert.equal(
+    (await overlay.next("play", (item) => item.play.action?.name === "wave"))
+      .play.action.name,
+    "wave",
+  );
+  studio.socket.close();
+  await overlay.next(
+    "play",
+    (item) => !item.play.controlled && item.play.revision >= built.revision,
+  );
+  overlay.send({ type: "control-start" });
+  assert.equal((await overlay.next("control")).owned, true);
+  overlay.send({ type: "game-command", action: "remove" });
+  await fresh.next(
+    "play",
+    (item) =>
+      item.play.revision > built.revision && item.play.blocks.length === 0,
+  );
+  await fetch(`${app.url}/api/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stageMode: "avatar" }),
+  });
+  await fresh.next(
+    "play",
+    (item) => item.play.revision > built.revision && !item.play.controlled,
   );
 });
 

@@ -13,8 +13,10 @@ try {
       if (message.type === "state") {
         avatar.configure(message.settings);
         avatar.setInput({ ...message.pointer, ...message.voice });
+        avatar.setPerformance(message.play);
       }
       if (message.type === "settings") avatar.configure(message.settings);
+      if (message.type === "play") avatar.setPerformance(message.play);
       if (message.type === "pointer")
         avatar.setInput({ x: message.x, y: message.y });
       if (message.type === "voice")

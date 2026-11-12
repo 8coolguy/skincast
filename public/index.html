@@ -166,69 +166,160 @@
           </section>
         </aside>
 
-        <section class="preview-panel" aria-label="Avatar preview">
-          <div class="preview-toolbar">
-            <span class="preview-title"
-              ><span class="dot"></span>LIVE PREVIEW</span
-            ><span id="preview-dimensions">800 × 800</span
-            ><button
-              class="icon-button"
-              id="reset-view"
-              title="Reset avatar framing"
-              aria-label="Reset avatar framing"
-            >
-              <span data-icon="reset"></span>
-            </button>
-          </div>
-          <div class="preview-scene checkerboard" id="preview-scene">
-            <div class="stage-corner top-left"></div>
-            <div class="stage-corner top-right"></div>
-            <div class="stage-corner bottom-left"></div>
-            <div class="stage-corner bottom-right"></div>
-            <div class="preview-label">
-              <span data-icon="layers"></span
-              ><span id="background-label">Transparent background</span>
-            </div>
-            <div id="avatar"></div>
-            <div class="avatar-error" id="avatar-error" hidden></div>
-            <div class="voice-pill" id="voice-pill">
-              <span class="voice-bars"><i></i><i></i><i></i></span
-              ><span id="voice-state">Mic is off</span>
-            </div>
-            <span class="stage-watermark">MAKE YOURSELF SEEN.</span>
-          </div>
-          <div class="preview-controls">
-            <div class="segmented" aria-label="Avatar framing">
-              <button data-framing="full" class="active" aria-pressed="true">
-                <span data-icon="user"></span>Full body</button
-              ><button data-framing="portrait" aria-pressed="false">
-                <span data-icon="portrait"></span>Portrait
+        <div class="center-column">
+          <section class="preview-panel" aria-label="Avatar preview">
+            <div class="preview-toolbar">
+              <span class="preview-title"
+                ><span class="dot"></span>LIVE PREVIEW</span
+              ><span id="preview-dimensions">800 × 800</span
+              ><button
+                class="icon-button"
+                id="reset-view"
+                title="Reset avatar framing"
+                aria-label="Reset avatar framing"
+              >
+                <span data-icon="reset"></span>
               </button>
             </div>
-            <label class="zoom-control" for="zoom"
-              ><span data-icon="zoom"></span
-              ><input
-                id="zoom"
-                type="range"
-                data-setting="zoom"
-                min="0.5"
-                max="1.4"
-                step="0.01"
-                value="0.9"
-                aria-label="Avatar size"
-              /><output id="zoom-value">100%</output></label
+            <div
+              class="preview-scene checkerboard"
+              id="preview-scene"
+              tabindex="0"
+              aria-label="Avatar stage. In sandbox control mode use W A S D or arrow keys to move, Space to jump, E to place, and Q to remove a block."
             >
-          </div>
-          <div class="preview-note">
-            <span data-icon="cursor"></span
-            ><span id="preview-note-text"
-              >Move your mouse anywhere on your screen.</span
-            ><button id="preview-track" aria-pressed="false">
-              Preview tracking
-            </button>
-          </div>
-        </section>
+              <div class="stage-corner top-left"></div>
+              <div class="stage-corner top-right"></div>
+              <div class="stage-corner bottom-left"></div>
+              <div class="stage-corner bottom-right"></div>
+              <div class="preview-label">
+                <span data-icon="layers"></span
+                ><span id="background-label">Transparent background</span>
+              </div>
+              <div id="avatar"></div>
+              <div class="avatar-error" id="avatar-error" hidden></div>
+              <div class="voice-pill" id="voice-pill">
+                <span class="voice-bars"><i></i><i></i><i></i></span
+                ><span id="voice-state">Mic is off</span>
+              </div>
+              <span class="stage-watermark">MAKE YOURSELF SEEN.</span>
+            </div>
+            <div class="preview-controls">
+              <div class="segmented" aria-label="Avatar framing">
+                <button data-framing="full" class="active" aria-pressed="true">
+                  <span data-icon="user"></span>Full body</button
+                ><button data-framing="portrait" aria-pressed="false">
+                  <span data-icon="portrait"></span>Portrait
+                </button>
+              </div>
+              <label class="zoom-control" for="zoom"
+                ><span data-icon="zoom"></span
+                ><input
+                  id="zoom"
+                  type="range"
+                  data-setting="zoom"
+                  min="0.5"
+                  max="1.4"
+                  step="0.01"
+                  value="0.9"
+                  aria-label="Avatar size"
+                /><output id="zoom-value">100%</output></label
+              >
+            </div>
+            <div class="preview-note">
+              <span data-icon="cursor"></span
+              ><span id="preview-note-text"
+                >Move your mouse anywhere on your screen.</span
+              ><button id="preview-track" aria-pressed="false">
+                Preview tracking
+              </button>
+            </div>
+          </section>
 
+          <section
+            class="card playground"
+            aria-label="Avatar actions and sandbox"
+          >
+            <div class="playground-header">
+              <div>
+                <div class="eyebrow">A LITTLE ROOM TO PLAY</div>
+                <h2>Give your avatar something to do.</h2>
+                <p>
+                  Trigger a gesture, or take a walk on your own block island.
+                  OBS follows along.
+                </p>
+              </div>
+              <div class="segmented" aria-label="Stage mode">
+                <button data-stage="avatar" class="active" aria-pressed="true">
+                  Avatar</button
+                ><button data-stage="sandbox" aria-pressed="false">
+                  Sandbox
+                </button>
+              </div>
+            </div>
+            <div class="action-buttons" aria-label="Avatar actions">
+              <button class="button secondary" data-action="wave">
+                Wave <kbd>1</kbd></button
+              ><button class="button secondary" data-action="dance">
+                Dance <kbd>2</kbd></button
+              ><button class="button secondary" data-action="spin">
+                Spin <kbd>3</kbd></button
+              ><button class="button secondary" data-action="cheer">
+                Cheer <kbd>4</kbd></button
+              ><button class="button secondary" data-action="jump">
+                Jump <kbd>Space</kbd></button
+              ><button class="text-button" data-action="stop">
+                Stop action</button
+              ><span id="action-status" aria-live="polite">Ready to play</span>
+            </div>
+            <div id="sandbox-tools" hidden>
+              <div class="sandbox-controls">
+                <button
+                  class="button primary"
+                  id="take-control"
+                  aria-pressed="false"
+                >
+                  Take control</button
+                ><label for="block-type"
+                  >Build with<select id="block-type">
+                    <option value="grass">Grass</option>
+                    <option value="stone">Stone</option>
+                    <option value="wood">Wood</option>
+                  </select></label
+                ><button
+                  class="button secondary"
+                  data-action="place"
+                  data-needs-control
+                >
+                  Place block <kbd>E</kbd></button
+                ><button
+                  class="button secondary"
+                  data-action="remove"
+                  data-needs-control
+                >
+                  Remove block <kbd>Q</kbd></button
+                ><button
+                  class="text-button"
+                  data-action="reset"
+                  data-needs-control
+                >
+                  Reset island</button
+                ><span id="block-count">0 / 49 blocks</span>
+              </div>
+              <p class="sandbox-help" id="sandbox-help">
+                Take control, then click the preview. WASD or arrow keys move,
+                Shift runs, Space jumps. E builds and Q removes the highlighted
+                tile ahead. Keyboard controls work only while the preview has
+                focus.
+              </p>
+              <div class="touch-controls" aria-label="On-screen movement">
+                <button data-move="up" aria-label="Move forward">↑</button
+                ><button data-move="left" aria-label="Move left">←</button
+                ><button data-move="down" aria-label="Move backward">↓</button
+                ><button data-move="right" aria-label="Move right">→</button>
+              </div>
+            </div>
+          </section>
+        </div>
         <aside class="right-column">
           <section class="card voice-card">
             <div class="card-title">
@@ -296,6 +387,138 @@
                 />
               </div>
             </div>
+            <details class="voice-customization" id="voice-customization">
+              <summary>Customize speaking effect</summary>
+              <div class="voice-custom-grid">
+                <label
+                  >Style<select id="voiceStyle" data-setting="voiceStyle">
+                    <option value="bars">Equalizer bars</option>
+                    <option value="dots">Bouncing dots</option>
+                    <option value="ring">Pulsing ring</option>
+                  </select></label
+                >
+                <label
+                  >Placement<select
+                    id="voicePlacement"
+                    data-setting="voicePlacement"
+                  >
+                    <option value="right">Right of head</option>
+                    <option value="left">Left of head</option>
+                    <option value="above">Above head</option>
+                    <option value="chest">On chest</option>
+                  </select></label
+                >
+              </div>
+              <div class="range-field">
+                <label for="voiceSize"
+                  >Effect size<output id="voiceSize-value">100%</output></label
+                ><input
+                  id="voiceSize"
+                  type="range"
+                  data-setting="voiceSize"
+                  min="0.4"
+                  max="2.5"
+                  step="0.05"
+                  value="1"
+                />
+              </div>
+              <div class="range-field" id="voice-count-field">
+                <label for="voiceCount"
+                  >Bar / dot count<output id="voiceCount-value"
+                    >3</output
+                  ></label
+                ><input
+                  id="voiceCount"
+                  type="range"
+                  data-setting="voiceCount"
+                  min="3"
+                  max="9"
+                  step="1"
+                  value="3"
+                />
+              </div>
+              <div class="range-field">
+                <label for="voiceOpacity"
+                  >Opacity<output id="voiceOpacity-value">100%</output></label
+                ><input
+                  id="voiceOpacity"
+                  type="range"
+                  data-setting="voiceOpacity"
+                  min="0.2"
+                  max="1"
+                  step="0.05"
+                  value="1"
+                />
+              </div>
+              <div class="voice-custom-grid">
+                <div class="range-field">
+                  <label for="voiceOffsetX"
+                    >Horizontal offset<output id="voiceOffsetX-value"
+                      >0</output
+                    ></label
+                  ><input
+                    id="voiceOffsetX"
+                    type="range"
+                    data-setting="voiceOffsetX"
+                    min="-6"
+                    max="6"
+                    step="0.25"
+                    value="0"
+                  />
+                </div>
+                <div class="range-field">
+                  <label for="voiceOffsetY"
+                    >Vertical offset<output id="voiceOffsetY-value"
+                      >0</output
+                    ></label
+                  ><input
+                    id="voiceOffsetY"
+                    type="range"
+                    data-setting="voiceOffsetY"
+                    min="-6"
+                    max="6"
+                    step="0.25"
+                    value="0"
+                  />
+                </div>
+              </div>
+              <div class="range-field">
+                <label for="voiceRelease"
+                  >Fade-out time<output id="voiceRelease-value"
+                    >120 ms</output
+                  ></label
+                ><input
+                  id="voiceRelease"
+                  type="range"
+                  data-setting="voiceRelease"
+                  min="0.05"
+                  max="1"
+                  step="0.01"
+                  value="0.12"
+                />
+              </div>
+              <div class="range-field">
+                <label for="voiceBounce"
+                  >Voice bounce<output id="voiceBounce-value"
+                    >100%</output
+                  ></label
+                ><input
+                  id="voiceBounce"
+                  type="range"
+                  data-setting="voiceBounce"
+                  min="0"
+                  max="2"
+                  step="0.05"
+                  value="1"
+                />
+              </div>
+              <button class="button secondary full" id="test-voice">
+                Test effect · preview only
+              </button>
+              <button class="text-button" id="reset-voice">
+                Reset speaking effect
+              </button>
+            </details>
             <p class="privacy-note">
               <span data-icon="shield"></span>Only volume is shared. Audio stays
               here.

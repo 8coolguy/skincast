@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { defaults, validateSettings, parseLevel } from "./lib/settings.mjs";
 import { fetchSkin } from "./lib/skins.mjs";
 import { startCursor } from "./lib/cursor.mjs";
+import { createSandbox } from "./lib/sandbox.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const types = {
@@ -46,6 +47,9 @@ export async function startServer({
   let micOwner = null;
   let micTimestamp = 0;
   let writeQueue = Promise.resolve();
+  const sandbox = createSandbox();
+  sandbox.setMode(settings.stageMode);
+  let controlOwner = null;
   const wss = new WebSocketServer({ noServer: true, maxPayload: 2048 });
   const broadcast = (message) => {
     const text = JSON.stringify(message);
@@ -63,6 +67,7 @@ export async function startServer({
     tracking,
     pointer,
     voice: { level, connected: !!micOwner },
+    play: sandbox.snapshot(Date.now()),
   });
   const sendJson = (res, status, data) => {
     res.writeHead(status, {
@@ -112,7 +117,12 @@ export async function startServer({
           const next = validateSettings({ ...settings, ...patch });
           await writeFile(`${settingsPath}.tmp`, JSON.stringify(next, null, 2));
           await rename(`${settingsPath}.tmp`, settingsPath);
+          const modeChanged = settings.stageMode !== next.stageMode;
           settings = next;
+          if (modeChanged) {
+            controlOwner = null;
+            sandbox.setMode(settings.stageMode);
+          }
           broadcast({ type: "settings", settings });
           sendJson(res, 200, { settings });
         });
@@ -188,11 +198,48 @@ export async function startServer({
     );
   });
   wss.on("connection", (ws) => {
+    let lastCommand = 0;
     ws.send(JSON.stringify(state()));
     ws.on("message", (raw) => {
       try {
         const message = JSON.parse(raw.toString());
-        if (message.type === "voice-start") {
+        if (message.type === "control-start") {
+          if (settings.stageMode !== "sandbox")
+            throw new Error("Switch to Sandbox to take control.");
+          if (controlOwner && controlOwner !== ws)
+            return ws.send(
+              JSON.stringify({
+                type: "control-busy",
+                message: "Another studio tab is controlling the avatar.",
+              }),
+            );
+          controlOwner = ws;
+          sandbox.control(true);
+          ws.send(JSON.stringify({ type: "control", owned: true }));
+        } else if (message.type === "control-stop" && controlOwner === ws) {
+          controlOwner = null;
+          sandbox.control(false);
+          ws.send(JSON.stringify({ type: "control", owned: false }));
+        } else if (message.type === "game-input") {
+          if (controlOwner !== ws)
+            throw new Error("Take control before moving the avatar.");
+          sandbox.input(message, Date.now());
+        } else if (message.type === "game-command") {
+          if (controlOwner && controlOwner !== ws)
+            throw new Error("Another studio tab is controlling the avatar.");
+          if (
+            settings.stageMode === "sandbox" &&
+            ["jump", "place", "remove", "reset"].includes(message.action) &&
+            controlOwner !== ws
+          )
+            throw new Error("Take control before using sandbox tools.");
+          if (typeof message.action !== "string")
+            throw new Error("Choose an avatar action.");
+          const now = Date.now();
+          if (now - lastCommand < 100) return;
+          sandbox.command(message.action, message.blockType, now);
+          lastCommand = now;
+        } else if (message.type === "voice-start") {
           if (micOwner && micOwner !== ws)
             return ws.send(
               JSON.stringify({
@@ -213,13 +260,20 @@ export async function startServer({
           level = 0;
           broadcast(voiceState());
         }
-      } catch {
+      } catch (err) {
         ws.send(
-          JSON.stringify({ type: "error", message: "Invalid live input." }),
+          JSON.stringify({
+            type: "error",
+            message: err.message || "Invalid live input.",
+          }),
         );
       }
     });
     ws.on("close", () => {
+      if (controlOwner === ws) {
+        controlOwner = null;
+        sandbox.control(false);
+      }
       if (micOwner === ws) {
         micOwner = null;
         level = 0;
@@ -227,6 +281,13 @@ export async function startServer({
       }
     });
   });
+  let previousTick = Date.now();
+  const simulation = setInterval(() => {
+    const now = Date.now();
+    sandbox.tick(Math.min(0.05, (now - previousTick) / 1000), now);
+    previousTick = now;
+    broadcast({ type: "play", play: sandbox.snapshot(now) });
+  }, 1000 / 30);
   const stale = setInterval(() => {
     if (micOwner && Date.now() - micTimestamp > 2500) {
       micOwner = null;
@@ -265,6 +326,7 @@ export async function startServer({
     url: address,
     close: async () => {
       clearInterval(stale);
+      clearInterval(simulation);
       (await cursorPromise)();
       for (const client of wss.clients) client.terminate();
       wss.close();

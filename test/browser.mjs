@@ -121,13 +121,11 @@ try {
       document.querySelector("#avatar").dataset.background === "transparent",
   );
 
-  await studio
-    .locator("#background-file")
-    .setInputFiles({
-      name: "background.png",
-      mimeType: "image/png",
-      buffer: await readFile("assets/8coolguy.png"),
-    });
+  await studio.locator("#background-file").setInputFiles({
+    name: "background.png",
+    mimeType: "image/png",
+    buffer: await readFile("assets/8coolguy.png"),
+  });
   await overlay.waitForFunction(
     () => document.querySelector("#avatar").dataset.background === "image",
   );
@@ -153,6 +151,43 @@ try {
     Number(await studio.locator("#audio-meter").getAttribute("aria-valuenow")) >
       5,
   );
+  await studio.locator("#voice-customization summary").click();
+  await studio.locator("#voiceStyle").selectOption("ring");
+  await studio.locator("#voicePlacement").selectOption("above");
+  const setRange = async (id, value) =>
+    studio.locator(`#${id}`).evaluate((el, value) => {
+      el.value = value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }, String(value));
+  await setRange("voiceSize", 1.5);
+  await setRange("voiceOpacity", 0.65);
+  await setRange("voiceBounce", 0);
+  await overlay.waitForFunction(
+    () =>
+      document.querySelector("#avatar").dataset.indicatorStyle === "ring" &&
+      document.querySelector("#avatar").dataset.indicatorSize === "1.5",
+  );
+  assert.equal(await studio.locator("#voice-count-field").isVisible(), false);
+  await overlay.screenshot({
+    path: "test-results/voice-ring.png",
+    omitBackground: true,
+  });
+  await studio.locator("#voiceStyle").selectOption("dots");
+  await setRange("voiceCount", 5);
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.indicatorStyle === "dots",
+  );
+  assert.equal(await studio.locator("#voiceCount-value").textContent(), "5");
+  await studio.locator("#voiceIndicator").uncheck();
+  await overlay.waitForFunction(
+    () =>
+      document.querySelector("#avatar").dataset.indicatorVisible === "false",
+  );
+  await studio.locator("#voiceIndicator").check();
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.indicatorVisible === "true",
+  );
   await studio.screenshot({ path: "test-results/studio.png", fullPage: true });
   await overlay.screenshot({
     path: "test-results/overlay-speaking.png",
@@ -161,6 +196,163 @@ try {
   await studio.locator("#mic-toggle").click();
   await overlay.waitForFunction(
     () => document.querySelector("#avatar").dataset.speaking === "false",
+  );
+  await studio.locator("#test-voice").click();
+  await studio.waitForFunction(
+    () => document.querySelector("#avatar").dataset.speaking === "true",
+  );
+  assert.equal(
+    await overlay.locator("#avatar").getAttribute("data-speaking"),
+    "false",
+    "Effect test must stay in the preview",
+  );
+  await studio.locator("#reset-voice").click();
+  await overlay.waitForFunction(
+    () =>
+      document.querySelector("#avatar").dataset.indicatorStyle === "bars" &&
+      document.querySelector("#avatar").dataset.indicatorPlacement === "right",
+  );
+  await studio.locator("#idle").uncheck();
+  await studio.locator("#tracking").uncheck();
+  await studio.waitForTimeout(300);
+  const silhouetteWidth = () =>
+    overlay.locator("canvas").evaluate((canvas) => {
+      const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+      const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+      gl.readPixels(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        pixels,
+      );
+      let minX = canvas.width,
+        maxX = 0;
+      for (let y = 0; y < canvas.height; y++)
+        for (let x = 0; x < canvas.width; x++)
+          if (pixels[(y * canvas.width + x) * 4 + 3] > 32) {
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+          }
+      return maxX - minX;
+    });
+  const idleWidth = await silhouetteWidth();
+  for (const action of ["wave", "dance", "spin", "cheer"]) {
+    await studio.locator(`[data-action="${action}"]`).click();
+    await overlay.waitForFunction(
+      (action) => document.querySelector("#avatar").dataset.action === action,
+      action,
+    );
+    if (action === "wave") {
+      assert.ok(
+        (await silhouetteWidth()) > idleWidth + 20,
+        "Waving must visibly raise and extend the arm in the actual WebGL output",
+      );
+      await overlay.screenshot({
+        path: "test-results/gesture-wave.png",
+        omitBackground: true,
+      });
+    }
+    await studio.waitForTimeout(120);
+  }
+  await studio.locator('[data-action="stop"]').click();
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.action === "idle",
+  );
+  await studio.locator("#idle").check();
+  await studio.locator("#tracking").check();
+  await studio.locator('[data-stage="sandbox"]').click();
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.stageMode === "sandbox",
+  );
+  await studio.locator("#take-control").click();
+  await studio.waitForFunction(
+    () =>
+      document.querySelector("#take-control").getAttribute("aria-pressed") ===
+      "true",
+  );
+  await studio.keyboard.down("d");
+  await overlay.waitForFunction(
+    () => Number(document.querySelector("#avatar").dataset.playerX) > 0.6,
+  );
+  await studio.keyboard.up("d");
+  await studio.keyboard.press("Space");
+  await overlay.waitForFunction(
+    () => Number(document.querySelector("#avatar").dataset.playerY) > 0.1,
+  );
+  await studio.keyboard.press("e");
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.blocks === "1",
+  );
+  await studio.waitForTimeout(150);
+  await studio.keyboard.press("q");
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.blocks === "0",
+  );
+  await studio.locator("#block-type").selectOption("wood");
+  await studio.waitForTimeout(150);
+  await studio.locator('[data-action="place"]').click();
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.blocks === "1",
+  );
+  await studio.keyboard.down("s");
+  await overlay.waitForFunction(
+    () => Number(document.querySelector("#avatar").dataset.playerZ) > 0.2,
+  );
+  await studio.locator("#username").focus();
+  await studio.keyboard.up("s");
+  await studio.waitForTimeout(150);
+  const stoppedZ = Number(
+    await overlay.locator("#avatar").getAttribute("data-player-z"),
+  );
+  await studio.waitForTimeout(450);
+  assert.ok(
+    Math.abs(
+      Number(await overlay.locator("#avatar").getAttribute("data-player-z")) -
+        stoppedZ,
+    ) < 0.01,
+    "Losing stage focus must stop movement",
+  );
+  const leftButton = studio.locator('[data-move="left"]');
+  await leftButton.scrollIntoViewIfNeeded();
+  const buttonBox = await leftButton.boundingBox();
+  await studio.mouse.move(
+    buttonBox.x + buttonBox.width / 2,
+    buttonBox.y + buttonBox.height / 2,
+  );
+  await studio.mouse.down();
+  await overlay.waitForFunction(
+    () => Number(document.querySelector("#avatar").dataset.playerX) < 0.4,
+  );
+  await studio.mouse.up();
+  const lateOverlay = await context.newPage();
+  await lateOverlay.goto(`${app.url}/overlay`);
+  await lateOverlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.blocks === "1",
+  );
+  await lateOverlay.close();
+  await studio.locator('[data-action="wave"]').click();
+  await overlay.waitForFunction(
+    () => document.querySelector("#avatar").dataset.action === "wave",
+  );
+  await studio.bringToFront();
+  await studio.screenshot({
+    path: "test-results/sandbox-studio.png",
+    fullPage: true,
+  });
+  await overlay.bringToFront();
+  await overlay.screenshot({
+    path: "test-results/sandbox-overlay.png",
+    omitBackground: true,
+  });
+  await studio.bringToFront();
+  await studio.locator("#take-control").click();
+  await studio.waitForFunction(
+    () =>
+      document.querySelector("#take-control").getAttribute("aria-pressed") ===
+      "false",
   );
   await studio.locator("#setup-toggle").click();
   assert.equal(await studio.locator("#setup-guide").isVisible(), true);
@@ -173,6 +365,14 @@ try {
   await studio.reload();
   await studio.locator('#avatar[data-skin-loaded="true"]').waitFor();
   assert.equal(await studio.locator("#skin-name").textContent(), "Custom skin");
+  assert.equal(
+    await studio.locator("#avatar").getAttribute("data-stage-mode"),
+    "sandbox",
+  );
+  assert.equal(
+    await studio.locator("#avatar").getAttribute("data-blocks"),
+    "1",
+  );
   await studio.setViewportSize({ width: 390, height: 844 });
   await studio.screenshot({ path: "test-results/mobile.png", fullPage: true });
   assert.equal(
@@ -184,7 +384,7 @@ try {
   );
   assert.deepEqual(errors, [], "Browser must have no uncaught errors");
   console.log(
-    "Browser verification passed: real WebGL pixels and alpha, gaze, framing, backgrounds, PNG upload, microphone AudioWorklet, overlay sync, clipboard, reload, mobile layout.",
+    "Browser verification passed: real WebGL pixels and alpha, gaze, backgrounds, PNG upload, microphone, speaking styles and customization, preview-only effect test, gestures, sandbox movement and jumping, block tools, focus release, late overlay sync, clipboard, reload, mobile layout.",
   );
   console.log(
     "Screenshots: test-results/studio.png, test-results/overlay-speaking.png, test-results/mobile.png",

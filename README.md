@@ -1,6 +1,6 @@
 # Skincast
 
-Use your Minecraft skin as a 3D VTuber avatar in OBS. Your head follows the desktop cursor. When you speak, bars beside your avatar's head light up and the avatar bounces. Choose a transparent background, a solid color, or an image.
+Use your Minecraft skin as a 3D VTuber avatar in OBS. Your head follows the desktop cursor, and a customizable effect reacts to speech. Trigger gestures or control the avatar on a small block island. Choose a transparent background, a solid color, or an image.
 
 ## Start the studio
 
@@ -47,9 +47,33 @@ A game that locks or repeatedly warps the mouse to the center also centers the a
 
 Use **Full body**, **Portrait**, and the size slider to frame the avatar. The reset button restores full body at the default size. **Look sensitivity** sets how far the head turns. **Smoothing** controls how gradually it follows the cursor. Turn off **Idle animation** to stop the breathing motion.
 
-Use the color picker beside **Speaking indicator** to choose the voice bars' color. The switch hides the bars. Voice bounce still follows microphone volume.
+Use the color picker beside **Speaking indicator** to choose the effect's color. Open **Customize speaking effect** for bars, dots, or a pulsing ring. Choose a position beside the head, above it, or on the chest. Set the size, opacity, count, and horizontal or vertical offset. **Fade-out time** controls how gradually the effect disappears when you stop speaking.
+
+Set **Voice bounce** to zero to keep the avatar still while talking. The indicator switch hides the speaking effect independently of the bounce. **Test effect** runs a short preview without a microphone and does not send simulated speech to OBS. **Reset speaking effect** restores the default look. These settings save automatically and update the OBS overlay.
 
 Custom skins can use classic or slim arms. Auto detect works for standard skins. Uploaded PNGs must be 64 × 64, 64 × 32, or an HD multiple up to 1024 px wide.
+
+## Play with the avatar
+
+The actions panel below the preview has **Wave**, **Dance**, **Spin**, **Cheer**, and **Jump** buttons. These actions appear in the OBS overlay. **Stop action** ends a gesture. You can use gestures in the normal avatar view or on the island.
+
+To explore the island, select **Sandbox**, then click **Take control**. The preview receives keyboard focus. Click it again after using another control to resume keyboard input.
+
+| Key | Action |
+| --- | --- |
+| WASD or arrow keys | Walk |
+| Shift | Run while moving |
+| Space | Jump |
+| 1, 2, 3, 4 | Wave, dance, spin, cheer |
+| E | Place the selected block ahead |
+| Q | Remove the highlighted block |
+| Escape | Release control |
+
+Choose grass, stone, or wood in **Build with**. The highlighted tile is the target for building and removal. Solid blocks stop movement, and you can jump onto them. Use the on-screen arrow buttons if you prefer pointer or touch controls.
+
+Keyboard controls work only while the preview has focus. Switching focus stops movement. Only one studio tab can take control at a time. Closing that tab releases control. Your microphone and speaking effect continue working during play.
+
+**Reset island** clears placed blocks and returns the avatar to the center. **Avatar** returns to the normal stream framing. The island has a fixed 7 × 7 floor and one layer of placeable blocks. It has no inventory, crafting, mining timer, or combat. The shared island survives page refreshes and mode changes, and resets when you restart the server. Saved speaking and background settings survive server restarts.
 
 ## Troubleshoot
 
@@ -72,7 +96,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The browser check uses a real WebGL canvas and synthetic microphone audio. It checks alpha transparency, tracking, framing, backgrounds, uploads, voice reaction, overlay synchronization, persistence, clipboard copying, and the mobile layout. Screenshots go to `test-results/`.
+The browser check uses a real WebGL canvas and synthetic microphone audio. It checks alpha transparency, tracking, framing, backgrounds, uploads, speaking customization, gestures, sandbox movement, jumping, block tools, focus release, overlay synchronization, page reloads, clipboard copying, and the mobile layout. Server tests cover collisions, landing on blocks, island bounds, stale keys, and controller ownership. Screenshots go to `test-results/`.
 
 The macOS helper was compiled and exercised on this computer. Windows and Linux helpers need verification on their respective desktops. Live OBS composition and hardware microphone permission still need a manual check.
 

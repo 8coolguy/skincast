@@ -1,5 +1,7 @@
 import { SkinViewer } from "skinview3d";
-import { BoxGeometry, Mesh, MeshBasicMaterial, Group } from "three";
+import { MeshBasicMaterial } from "three";
+import { createSpeech } from "./speech.js";
+import { createIsland } from "./island.js";
 
 export function createAvatar(container, onError = () => {}) {
   const canvas = document.createElement("canvas");
@@ -19,20 +21,24 @@ export function createAvatar(container, onError = () => {}) {
   viewer.cameraLight.intensity = 0.7;
   viewer.playerObject.rotation.y = -0.12;
   const skin = viewer.playerObject.skin;
-  const speech = new Group();
   const material = new MeshBasicMaterial({
     color: "#a6efb4",
     transparent: true,
     opacity: 1,
   });
-  const bars = [-1, 0, 1].map((n) => {
-    const mesh = new Mesh(new BoxGeometry(0.55, 1, 0.28), material);
-    mesh.position.set(6.1 + n * 0.95, 5.9, 0);
-    speech.add(mesh);
-    return mesh;
-  });
-  skin.head.add(speech);
-  speech.visible = false;
+  const speech = createSpeech(skin.head, material);
+  const island = createIsland(viewer.scene);
+  let play = {
+    x: 0,
+    z: 0,
+    y: 0,
+    heading: 0,
+    moving: false,
+    action: null,
+    blocks: [],
+    revision: 0,
+  };
+  let testUntil = 0;
   let settings;
   let input = { x: 0, y: 0, level: 0, connected: false };
   let source = "";
@@ -60,32 +66,75 @@ export function createAvatar(container, onError = () => {}) {
       const targetY = settings.tracking ? input.y * settings.sensitivity : 0;
       x += (targetX - x) * blend;
       y += (targetY - y) * blend;
-      const talking = input.connected && input.level > settings.threshold;
+      const demo = now < testUntil;
+      const level = demo ? 0.35 + Math.sin(now / 110) * 0.15 : input.level;
+      const talking = (input.connected || demo) && level > settings.threshold;
       voice +=
-        ((talking ? Math.min(1, input.level * 3 + 0.3) : 0) - voice) *
-        (1 - Math.exp(-delta * (talking ? 22 : 12)));
+        ((talking ? Math.min(1, level * 3 + 0.3) : 0) - voice) *
+        (1 - Math.exp(-delta * (talking ? 22 : 1 / settings.voiceRelease)));
       const t = now / 1000;
+      const sandbox = settings.stageMode === "sandbox";
+      island.update(play, sandbox);
+      viewer.playerObject.scale.setScalar(sandbox ? 0.2 : 1);
       skin.head.rotation.set(y * 0.55, x * 0.85, -x * 0.05);
-      viewer.playerObject.rotation.y = -0.12 + x * 0.23;
-      skin.body.rotation.z = -x * 0.045;
+      viewer.playerObject.rotation.set(
+        0,
+        sandbox ? play.heading : -0.12 + x * 0.23,
+        0,
+      );
+      skin.body.rotation.set(0, 0, -x * 0.045);
+      const stride = sandbox && play.moving ? Math.sin(t * 12) * 0.75 : 0;
+      skin.leftLeg.rotation.x = stride;
+      skin.rightLeg.rotation.x = -stride;
+      skin.leftArm.rotation.x = -stride;
+      skin.rightArm.rotation.x = stride;
       skin.leftArm.rotation.z =
         -0.055 - (settings.idle ? Math.sin(t * 1.6) * 0.025 : 0) - voice * 0.05;
       skin.rightArm.rotation.z =
         0.055 + (settings.idle ? Math.sin(t * 1.6) * 0.025 : 0) + voice * 0.05;
-      const baseY = settings.framing === "portrait" ? -8.5 : 0;
-      viewer.playerObject.position.y =
-        baseY +
+      const baseY = sandbox ? -4.8 : settings.framing === "portrait" ? -8.5 : 0;
+      const bob =
         (settings.idle ? Math.sin(t * 1.8) * 0.17 : 0) +
-        voice * Math.abs(Math.sin(t * 12)) * 0.65;
-      speech.visible = settings.voiceIndicator && voice > 0.025;
-      material.opacity = Math.min(1, voice * 4);
-      bars.forEach((bar, index) => {
-        bar.scale.y =
-          0.6 + voice * (1.6 + Math.sin(t * 16 + index * 1.7) * 0.8);
-      });
+        voice * Math.abs(Math.sin(t * 12)) * 0.65 * settings.voiceBounce;
+      viewer.playerObject.position.set(
+        sandbox ? play.x * 4 : 0,
+        baseY + play.y * 4 + bob * (sandbox ? 0.2 : 1),
+        sandbox ? play.z * 4 : 0,
+      );
+      const action = play.action;
+      if (action?.name === "wave")
+        skin.rightArm.rotation.z =
+          -2.5 + Math.sin(action.progress * Math.PI * 8) * 0.4;
+      if (action?.name === "spin")
+        viewer.playerObject.rotation.y += action.progress * Math.PI * 2;
+      if (action?.name === "dance") {
+        const beat = action.progress * Math.PI * 16;
+        skin.body.rotation.z = Math.sin(beat) * 0.18;
+        skin.leftArm.rotation.z = 1.1 + Math.sin(beat) * 0.6;
+        skin.rightArm.rotation.z = -1.1 + Math.sin(beat) * 0.6;
+        skin.leftLeg.rotation.x = Math.sin(beat) * 0.45;
+        skin.rightLeg.rotation.x = -Math.sin(beat) * 0.45;
+      }
+      if (action?.name === "cheer") {
+        skin.leftArm.rotation.z = 2.6;
+        skin.rightArm.rotation.z = -2.6;
+        viewer.playerObject.position.y +=
+          Math.abs(Math.sin(action.progress * Math.PI * 4)) *
+          (sandbox ? 0.5 : 1.6);
+      }
+      speech.animate(voice, t, settings);
       container.dataset.speaking = String(talking);
       container.dataset.gazeX = x.toFixed(3);
       container.dataset.gazeY = y.toFixed(3);
+      container.dataset.stageMode = settings.stageMode;
+      container.dataset.action = action?.name || "idle";
+      container.dataset.playerX = play.x.toFixed(3);
+      container.dataset.playerZ = play.z.toFixed(3);
+      container.dataset.playerY = play.y.toFixed(3);
+      container.dataset.blocks = String(play.blocks.length);
+      container.dataset.indicatorVisible = String(
+        settings.voiceIndicator && voice > 0.025,
+      );
     }
     viewer.render();
     frame = requestAnimationFrame(render);
@@ -94,9 +143,29 @@ export function createAvatar(container, onError = () => {}) {
   return {
     async configure(next) {
       settings = next;
-      material.color.set(settings.voiceColor);
-      viewer.zoom =
-        settings.zoom * (settings.framing === "portrait" ? 1.65 : 1);
+      const speechBounds = speech.configure(settings);
+      container.dataset.indicatorStyle = settings.voiceStyle;
+      container.dataset.indicatorPlacement = settings.voicePlacement;
+      container.dataset.indicatorSize = String(settings.voiceSize);
+      if (settings.stageMode === "sandbox") {
+        viewer.camera.position.set(26, 24, 36);
+        viewer.zoom = settings.zoom * 0.9;
+        viewer.camera.lookAt(0, -8, 0);
+      } else {
+        viewer.resetCameraPose();
+        const extraTop = settings.voiceIndicator ? speechBounds.maxY - 16 : 0;
+        const fit = settings.voiceIndicator
+          ? Math.min(
+              1,
+              32 / (32 + extraTop),
+              28 / (speechBounds.maxX - speechBounds.minX),
+            )
+          : 1;
+        viewer.zoom =
+          settings.zoom * (settings.framing === "portrait" ? 1.65 : 1) * fit;
+        viewer.camera.position.y = extraTop / 2;
+        viewer.camera.lookAt(0, extraTop / 2, 0);
+      }
       container.dataset.background = settings.background;
       container.style.backgroundColor =
         settings.background === "color"
@@ -141,12 +210,19 @@ export function createAvatar(container, onError = () => {}) {
     setInput(next) {
       input = { ...input, ...next };
     },
+    setPerformance(next) {
+      play = next;
+    },
+    testVoice() {
+      testUntil = performance.now() + 2200;
+    },
     dispose() {
       disposed = true;
       loadVersion++;
       cancelAnimationFrame(frame);
       observer.disconnect();
-      speech.children.forEach((mesh) => mesh.geometry.dispose());
+      speech.dispose();
+      island.dispose();
       material.dispose();
       viewer.dispose();
     },

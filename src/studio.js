@@ -1,6 +1,7 @@
 import { createAvatar } from "./avatar.js";
 import { connect, saveSettings } from "./connection.js";
 import { startMicrophone } from "./microphone.js";
+import { createPlayground } from "./playground.js";
 
 const $ = (id) => document.getElementById(id);
 const icons = {
@@ -42,6 +43,7 @@ let faceSource;
 let faceVersion = 0;
 let micBusy = false;
 let serverConnected = false;
+let playground;
 
 function toast(message, error = false) {
   clearTimeout(toastTimer);
@@ -75,8 +77,16 @@ try {
 function rangeOutput(element) {
   const value = Number(element.value);
   const output = $(`${element.id}-value`);
-  if (output)
-    output.value = `${Math.round((value / (element.id === "zoom" ? 0.9 : 1)) * 100)}%`;
+  if (output) {
+    if (element.id === "voiceRelease")
+      output.value = `${Math.round(value * 1000)} ms`;
+    else if (
+      ["voiceCount", "voiceOffsetX", "voiceOffsetY"].includes(element.id)
+    )
+      output.value = String(value);
+    else
+      output.value = `${Math.round((value / (element.id === "zoom" ? 0.9 : 1)) * 100)}%`;
+  }
   element.style.setProperty(
     "--progress",
     `${((value - Number(element.min)) / (Number(element.max) - Number(element.min))) * 100}%`,
@@ -129,6 +139,8 @@ async function updateFace(source) {
 function renderSettings(next) {
   settings = next;
   avatar?.configure(settings);
+  playground?.configure(settings);
+  $("voice-count-field").hidden = settings.voiceStyle === "ring";
   document.querySelectorAll("[data-setting]").forEach((el) => {
     if (document.activeElement === el && el.type === "range") return;
     if (el.type === "checkbox") el.checked = settings[el.dataset.setting];
@@ -227,10 +239,18 @@ const connection = connect(
       voice = message.voice;
       lastPointer = message.pointer;
       avatar?.setInput({ ...lastPointer, ...voice });
+      avatar?.setPerformance(message.play);
+      playground?.update(message.play);
       updateVoice();
       updateTracking(message.tracking);
     }
     if (message.type === "settings") renderSettings(message.settings);
+    if (message.type === "play") {
+      avatar?.setPerformance(message.play);
+      playground?.update(message.play);
+    }
+    if (message.type === "control") playground?.control(message.owned);
+    if (message.type === "control-busy") toast(message.message, true);
     if (message.type === "pointer") {
       lastPointer = { x: message.x, y: message.y };
       if (!previewTracking) avatar?.setInput(lastPointer);
@@ -248,6 +268,7 @@ const connection = connect(
   },
   (connected) => {
     serverConnected = connected;
+    playground?.connection(connected);
     $("connection").classList.toggle("online", connected);
     $("connection-text").textContent = connected
       ? "Studio connected"
@@ -259,6 +280,23 @@ const connection = connect(
       avatar?.setInput({ x: 0, y: 0 });
     }
   },
+);
+playground = createPlayground((message) => connection.send(message), save);
+$("test-voice").addEventListener("click", () => avatar?.testVoice());
+$("reset-voice").addEventListener("click", () =>
+  save({
+    voiceStyle: "bars",
+    voicePlacement: "right",
+    voiceSize: 1,
+    voiceCount: 3,
+    voiceOpacity: 1,
+    voiceOffsetX: 0,
+    voiceOffsetY: 0,
+    voiceRelease: 0.12,
+    voiceBounce: 1,
+    voiceColor: "#a6efb4",
+    voiceIndicator: true,
+  }),
 );
 
 function updateTracking(tracking) {
@@ -509,6 +547,7 @@ $("setup-toggle").addEventListener("click", () => {
   $("setup-guide").hidden = !expanded;
 });
 window.addEventListener("pagehide", () => {
+  playground.dispose();
   disableMic();
   connection.dispose();
   avatar?.dispose();
