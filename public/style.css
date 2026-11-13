@@ -1469,6 +1469,179 @@ footer > span:first-child {
 .center-column {
   min-width: 0;
 }
+
+#pov-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+#pov-hud button {
+  pointer-events: auto;
+}
+.pov-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 17px;
+  height: 17px;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 1px 1px #162219);
+}
+.pov-crosshair:before,
+.pov-crosshair:after {
+  content: "";
+  position: absolute;
+  background: #f5ffe9;
+}
+.pov-crosshair:before {
+  width: 17px;
+  height: 2px;
+  top: 7px;
+}
+.pov-crosshair:after {
+  height: 17px;
+  width: 2px;
+  left: 7px;
+}
+#pov-target {
+  position: absolute;
+  top: 51px;
+  left: 16px;
+  padding: 5px 8px;
+  font-size: 10px;
+  background: #142d31bd;
+  color: #e1f1df;
+  border-radius: 4px;
+  text-transform: capitalize;
+}
+#pov-fullscreen {
+  position: absolute;
+  top: 16px;
+  right: 15px;
+  background: #152c32cf;
+  color: #dceada;
+  border: 1px solid #72928c;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 10px;
+}
+#pov-prompt {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #132d3b55;
+}
+#pov-prompt > div {
+  text-align: center;
+  max-width: 330px;
+  background: #182a2ded;
+  border: 1px solid #69877a;
+  border-radius: 12px;
+  padding: 25px;
+  pointer-events: auto;
+  box-shadow: 0 8px 40px #10252c44;
+}
+#pov-prompt h3 {
+  font:
+    500 24px "Space Grotesk",
+    system-ui,
+    sans-serif;
+  margin: 12px 0;
+  letter-spacing: -0.6px;
+}
+#pov-prompt p {
+  color: #b1c6bd;
+  line-height: 1.6;
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+#pov-prompt small {
+  display: block;
+  margin-top: 14px;
+  font-size: 9px;
+  color: #9db6a8;
+}
+.pov-hotbar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  border: 1px solid #759381;
+  background: #1c302ddc;
+  padding: 6px;
+  border-radius: 8px;
+}
+.pov-hotbar button {
+  background: #30423c;
+  border: 1px solid #617963;
+  border-radius: 4px;
+  color: #d9e6ce;
+  padding: 6px 9px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+}
+.pov-hotbar button.active {
+  border-color: #d4ec9e;
+  background: #506447;
+}
+.pov-hotbar i {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  box-shadow: inset -3px -4px #0003;
+}
+.grass-swatch {
+  background: #94b76a;
+}
+.stone-swatch {
+  background: #9ba5aa;
+}
+.wood-swatch {
+  background: #c2965c;
+}
+.preview-scene.first-person {
+  touch-action: none;
+}
+.preview-scene.first-person .stage-corner,
+.preview-scene.first-person .stage-watermark {
+  display: none;
+}
+.preview-scene.first-person .voice-pill {
+  left: auto;
+  right: 15px;
+  top: 52px;
+  bottom: auto;
+  transform: none;
+}
+.preview-scene:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+}
+.preview-panel:has(.first-person) .preview-controls {
+  display: none;
+}
+.preview-panel:has(.first-person) .preview-note {
+  line-height: 1.6;
+}
+@media (max-width: 760px) {
+  #pov-prompt > div {
+    max-width: 280px;
+    padding: 20px;
+  }
+  .pov-hotbar button {
+    padding: 6px;
+  }
+  .pov-hotbar {
+    gap: 4px;
+  }
+}
 .playground-header {
   display: flex;
   align-items: center;

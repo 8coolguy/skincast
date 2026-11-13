@@ -4,6 +4,9 @@ import {
   MeshLambertMaterial,
   Mesh,
   PlaneGeometry,
+  EdgesGeometry,
+  LineBasicMaterial,
+  LineSegments,
 } from "three";
 
 export function createIsland(scene) {
@@ -41,8 +44,11 @@ export function createIsland(scene) {
   });
   const targetGeo = new PlaneGeometry(3.7, 3.7);
   const target = new Mesh(targetGeo, targetMaterial);
+  const outlineGeometry = new EdgesGeometry(geometry);
+  const outlineMaterial = new LineBasicMaterial({ color: 0xf1efbc });
+  const outline = new LineSegments(outlineGeometry, outlineMaterial);
   target.rotation.x = -Math.PI / 2;
-  island.add(target, blocks);
+  island.add(target, outline, blocks);
   scene.add(island);
   island.visible = false;
   let revision = -1;
@@ -59,13 +65,16 @@ export function createIsland(scene) {
           blocks.add(mesh);
         }
       }
-      const x = Math.round(state.x + Math.sin(state.heading)),
-        z = Math.round(state.z + Math.cos(state.heading));
-      target.visible = Math.abs(x) <= 3 && Math.abs(z) <= 3;
-      const occupied = state.blocks.some(
-        (block) => block.x === x && block.z === z,
-      );
-      target.position.set(x * 4, occupied ? -3.97 : -7.97, z * 4);
+      target.visible = state.target?.kind === "ground";
+      outline.visible = state.target?.kind === "block";
+      if (state.target)
+        target.position.set(
+          state.target.x * 4,
+          state.target.kind === "block" ? -3.97 : -7.97,
+          state.target.z * 4,
+        );
+      if (state.target)
+        outline.position.set(state.target.x * 4, -6, state.target.z * 4);
     },
     dispose() {
       scene.remove(island);
@@ -73,6 +82,8 @@ export function createIsland(scene) {
       floorGeo.dispose();
       targetGeo.dispose();
       targetMaterial.dispose();
+      outlineGeometry.dispose();
+      outlineMaterial.dispose();
       floorMaterials.forEach((mat) => mat.dispose());
       Object.values(materials)
         .flat()

@@ -1,10 +1,15 @@
 import { SkinViewer } from "skinview3d";
-import { MeshBasicMaterial } from "three";
+import { Group, MeshBasicMaterial } from "three";
 import { createSpeech } from "./speech.js";
 import { minecraftPose } from "./minecraft-pose.js";
 import { createIsland } from "./island.js";
+import { eyeHeight } from "../lib/aim.mjs";
 
-export function createAvatar(container, onError = () => {}) {
+export function createAvatar(
+  container,
+  onError = () => {},
+  { firstPerson = false } = {},
+) {
   const canvas = document.createElement("canvas");
   canvas.setAttribute("aria-label", "3D Minecraft avatar");
   container.append(canvas);
@@ -22,6 +27,15 @@ export function createAvatar(container, onError = () => {}) {
   viewer.cameraLight.intensity = 0.7;
   viewer.playerObject.rotation.y = -0.12;
   const skin = viewer.playerObject.skin;
+  const hand = new Group();
+  const arm = new Group().copy(skin.rightArm, true);
+  arm.position.set(0, 0, 0);
+  hand.add(arm);
+  hand.scale.setScalar(0.075);
+  viewer.camera.add(hand);
+  hand.visible = false;
+  let lookOverride = null;
+  let swingUntil = 0;
   const material = new MeshBasicMaterial({
     color: "#a6efb4",
     transparent: true,
@@ -34,6 +48,7 @@ export function createAvatar(container, onError = () => {}) {
     z: 0,
     y: 0,
     heading: 0,
+    pitch: -0.55,
     moving: false,
     action: null,
     blocks: [],
@@ -65,6 +80,8 @@ export function createAvatar(container, onError = () => {}) {
     const delta = Math.min((now - last) / 1000, 0.1);
     last = now;
     if (settings) {
+      const sandbox = settings.stageMode === "sandbox";
+      const directLook = sandbox && play.active;
       const blend = 1 - Math.pow(settings.smoothing, delta * 60);
       const useMinecraft =
         settings.motionSource === "minecraft" &&
@@ -86,8 +103,8 @@ export function createAvatar(container, onError = () => {}) {
               y: liveRelative ? input.gameY : 0,
             }
           : input;
-      const targetX = settings.tracking ? gaze.x * settings.sensitivity : 0;
-      const targetY = settings.tracking ? gaze.y * settings.sensitivity : 0;
+      const targetX = settings.tracking && !directLook ? gaze.x * settings.sensitivity : 0;
+      const targetY = settings.tracking && !directLook ? gaze.y * settings.sensitivity : 0;
       x += (targetX - x) * blend;
       y += (targetY - y) * blend;
       const demo = now < testUntil;
@@ -97,16 +114,22 @@ export function createAvatar(container, onError = () => {}) {
         ((talking ? Math.min(1, level * 3 + 0.3) : 0) - voice) *
         (1 - Math.exp(-delta * (talking ? 22 : 1 / settings.voiceRelease)));
       const t = now / 1000;
-      const sandbox = settings.stageMode === "sandbox";
+      const pov = firstPerson && sandbox;
       island.update(play, sandbox);
+      viewer.playerObject.visible = !pov;
+      hand.visible = pov && container.dataset.skinLoaded === "true";
       viewer.playerObject.scale.setScalar(sandbox ? 0.2 : 1);
-      skin.head.rotation.set(y * 0.55, x * 0.85, -x * 0.05);
+      skin.head.rotation.set(
+        (sandbox ? -play.pitch : 0) + (directLook ? 0 : y * 0.55),
+        directLook ? 0 : x * 0.85,
+        directLook ? 0 : -x * 0.05,
+      );
       viewer.playerObject.rotation.set(
         0,
         sandbox ? play.heading : -0.12 + x * 0.23,
         0,
       );
-      skin.body.rotation.set(0, 0, -x * 0.045);
+      skin.body.rotation.set(0, 0, directLook ? 0 : -x * 0.045);
       const stride =
         sandbox && play.moving
           ? Math.sin(t * 12) * 0.75
@@ -173,17 +196,48 @@ export function createAvatar(container, onError = () => {}) {
       container.dataset.lift = (useMinecraft ? motion.lift : 0).toFixed(3);
       container.dataset.swing = (useMinecraft ? motion.swing : 0).toFixed(3);
       container.dataset.crouch = (useMinecraft ? motion.crouch : 0).toFixed(3);
+      if (pov) {
+        const gameLook = lookOverride || {
+          yaw: play.heading - Math.PI,
+          pitch: play.pitch,
+        };
+        const look = directLook
+          ? gameLook
+          : {
+              yaw: play.heading - Math.PI - x * 0.85,
+              pitch: Math.max(-1.3, Math.min(1.3, play.pitch - y * 0.55)),
+            };
+        viewer.camera.position.set(
+          play.x * 4,
+          -8 + (play.y + eyeHeight) * 4,
+          play.z * 4,
+        );
+        viewer.camera.rotation.set(look.pitch, look.yaw, 0, "YXZ");
+        const swing = Math.max(0, (swingUntil - now) / 300);
+        hand.position.set(
+          0.63,
+          -0.28 + (play.moving ? Math.sin(t * 12) * 0.025 : 0),
+          -1.2,
+        );
+        hand.rotation.set(1.0 - Math.sin(swing * Math.PI) * 0.7, 0, 0.12);
+        container.dataset.lookYaw = look.yaw.toFixed(3);
+        container.dataset.lookPitch = look.pitch.toFixed(3);
+      }
       container.dataset.speaking = String(talking);
       container.dataset.gazeX = x.toFixed(3);
       container.dataset.gazeY = y.toFixed(3);
+      container.dataset.lookSource = directLook ? "controls" : "cursor";
+      container.dataset.headYaw = skin.head.rotation.y.toFixed(3);
+      container.dataset.headPitch = skin.head.rotation.x.toFixed(3);
       container.dataset.stageMode = settings.stageMode;
+      container.dataset.view = pov ? "first-person" : "third-person";
       container.dataset.action = action?.name || "idle";
       container.dataset.playerX = play.x.toFixed(3);
       container.dataset.playerZ = play.z.toFixed(3);
       container.dataset.playerY = play.y.toFixed(3);
       container.dataset.blocks = String(play.blocks.length);
       container.dataset.indicatorVisible = String(
-        settings.voiceIndicator && voice > 0.025,
+        !pov && settings.voiceIndicator && voice > 0.025,
       );
     }
     viewer.render();
@@ -197,6 +251,10 @@ export function createAvatar(container, onError = () => {}) {
       container.dataset.indicatorStyle = settings.voiceStyle;
       container.dataset.indicatorPlacement = settings.voicePlacement;
       container.dataset.indicatorSize = String(settings.voiceSize);
+      const pov = firstPerson && settings.stageMode === "sandbox";
+      viewer.camera.fov = pov ? 72 : 50;
+      viewer.camera.near = pov ? 0.05 : 0.1;
+      viewer.camera.updateProjectionMatrix();
       if (settings.stageMode === "sandbox") {
         viewer.camera.position.set(26, 24, 36);
         viewer.zoom = settings.zoom * 0.9;
@@ -217,12 +275,13 @@ export function createAvatar(container, onError = () => {}) {
         viewer.camera.lookAt(0, extraTop / 2, 0);
       }
       container.dataset.background = settings.background;
-      container.style.backgroundColor =
-        settings.background === "color"
+      container.style.backgroundColor = pov
+        ? "#9bc9dc"
+        : settings.background === "color"
           ? settings.backgroundColor
           : "transparent";
       container.style.backgroundImage =
-        settings.background === "image"
+        !pov && settings.background === "image"
           ? `url("${settings.backgroundImage}")`
           : "";
       const key = `${settings.skinSource}|${settings.model}`;
@@ -269,6 +328,12 @@ export function createAvatar(container, onError = () => {}) {
     setPerformance(next) {
       play = next;
     },
+    setLook(next) {
+      lookOverride = next;
+    },
+    swing() {
+      swingUntil = performance.now() + 300;
+    },
     testVoice() {
       testUntil = performance.now() + 2200;
     },
@@ -279,6 +344,7 @@ export function createAvatar(container, onError = () => {}) {
       observer.disconnect();
       speech.dispose();
       island.dispose();
+      viewer.camera.remove(hand);
       material.dispose();
       viewer.dispose();
     },

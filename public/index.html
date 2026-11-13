@@ -232,7 +232,7 @@
               class="preview-scene checkerboard"
               id="preview-scene"
               tabindex="0"
-              aria-label="Avatar stage. In sandbox control mode use W A S D or arrow keys to move, Space to jump, E to place, and Q to remove a block."
+              aria-label="First-person sandbox. Click to capture the mouse. WASD moves, Space jumps, left click removes, right click places, and Escape pauses."
             >
               <div class="stage-corner top-left"></div>
               <div class="stage-corner top-right"></div>
@@ -243,6 +243,36 @@
                 ><span id="background-label">Transparent background</span>
               </div>
               <div id="avatar"></div>
+              <div id="pov-hud" hidden>
+                <span class="pov-crosshair" aria-hidden="true"></span>
+                <span id="pov-target">Aim at the island or a block</span>
+                <button id="pov-fullscreen" type="button">
+                  Fullscreen <kbd>F</kbd>
+                </button>
+                <div id="pov-prompt">
+                  <div>
+                    <span class="eyebrow">YOUR VIEW, YOUR CONTROLS</span>
+                    <h3>Step into the island.</h3>
+                    <p id="pov-prompt-help">
+                      Mouse to look. WASD to move. Escape releases your mouse.
+                    </p>
+                    <button class="button primary" id="enter-first-person">
+                      Click to play</button
+                    ><small
+                      >OBS keeps the third-person view of your avatar.</small
+                    >
+                  </div>
+                </div>
+                <div class="pov-hotbar" aria-label="Building blocks">
+                  <button data-block="grass" class="active">
+                    <i class="grass-swatch"></i><kbd>1</kbd>Grass</button
+                  ><button data-block="stone">
+                    <i class="stone-swatch"></i><kbd>2</kbd>Stone</button
+                  ><button data-block="wood">
+                    <i class="wood-swatch"></i><kbd>3</kbd>Wood
+                  </button>
+                </div>
+              </div>
               <div class="avatar-error" id="avatar-error" hidden></div>
               <div class="voice-pill" id="voice-pill">
                 <span class="voice-bars"><i></i><i></i><i></i></span
@@ -291,8 +321,8 @@
                 <div class="eyebrow">A LITTLE ROOM TO PLAY</div>
                 <h2>Give your avatar something to do.</h2>
                 <p>
-                  Trigger a gesture, or take a walk on your own block island.
-                  OBS follows along.
+                  Play the island in first person. Your stream keeps a separate
+                  view of your avatar.
                 </p>
               </div>
               <div class="segmented" aria-label="Stage mode">
@@ -353,10 +383,12 @@
                 ><span id="block-count">0 / 49 blocks</span>
               </div>
               <p class="sandbox-help" id="sandbox-help">
-                Take control, then click the preview. WASD or arrow keys move,
-                Shift runs, Space jumps. E builds and Q removes the highlighted
-                tile ahead. Keyboard controls work only while the preview has
-                focus.
+                Click the view to play. Mouse looks, WASD moves, Shift runs, and
+                Space jumps. Aim with the crosshair. Left click or Q removes a
+                block; right click or E builds. Keys 1–3 select blocks, 4–7
+                trigger gestures, and F opens fullscreen. Escape pauses and
+                releases your mouse. Touch users can drag to look and use the
+                arrow buttons.
               </p>
               <div class="touch-controls" aria-label="On-screen movement">
                 <button data-move="up" aria-label="Move forward">↑</button
