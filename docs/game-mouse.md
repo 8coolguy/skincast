@@ -66,9 +66,24 @@ Verified on this machine: the Swift helper compiles, runs, and emits valid deskt
 
 5. Open `http://127.0.0.1:3334`, select **Game mouse · macOS / Linux**, and add `http://127.0.0.1:3334/overlay` to OBS. The status should say it is listening. Move your mouse while playing either Minecraft instance or another game.
 
+### Automatic wired / wireless switching for the MM712
+
+For the Cooler Master MM712 and its wireless USB dongle, install persistent read access once:
+
+```sh
+sudo python3 scripts/setup-mm712-access.py
+PORT=3334 npm start
+```
+
+Leave `SKINCAST_MOUSE_DEVICE` unset when switching connections. If you previously exported it in your terminal, run `unset SKINCAST_MOUSE_DEVICE` before starting Skincast.
+
+The installer writes `/etc/udev/rules.d/99-skincast-mm712.rules`, matching vendor `2516` and the wired (`0169`) and dongle (`01b7`) product IDs, restricted to mouse event interfaces. It grants the invoking account read-only access on connection, applies access to matching connected devices, and survives unplugging or rebooting. The existing helper discovers either connection automatically within about a second. It does not grant access to keyboard interfaces or other mouse models.
+
+To remove this persistent setup, delete that rule with administrator privileges and run `sudo udevadm control --reload-rules`. Reconnect both devices to clear their existing ACLs, and restart Skincast. Other mouse models can use the manual per-device setup above.
+
 The helper retries device discovery and access every second, so granting access does not require restarting. Without `SKINCAST_MOUSE_DEVICE`, it reads accessible devices advertising both relative mouse axes. The reader discards key/button events and wheel input. It emits zero deltas at rest so the avatar returns to center. Disconnects and access loss clear relative availability. An already open device may remain readable until the helper closes it; restart Skincast after revoking access.
 
-The ACL lasts until the device is recreated, usually at unplug or reboot. Reapply it then. Remove it with `sudo setfacl -x "u:$(id -un)" /dev/input/by-id/YOUR-MOUSE-event-mouse` and restart Skincast. Do not run the studio as root or add yourself to the broad `input` group.
+The manual ACL lasts until the device is recreated, usually at unplug or reboot. Reapply it then, or use the MM712 installer above. Remove it with `sudo setfacl -x "u:$(id -un)" /dev/input/by-id/YOUR-MOUSE-event-mouse` and restart Skincast. Do not run the studio as root or add yourself to the broad `input` group.
 
 Wayland absolute desktop cursor position is unavailable; select Game mouse for this session. Fabric mode remains available for actual Minecraft orientation, walking, jumping, and actions. Game mouse follows physical movement with its own sensitivity, rather than reading a game's camera angle.
 
