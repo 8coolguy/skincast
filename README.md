@@ -59,7 +59,7 @@ On macOS or Linux, choose **Game mouse · macOS / Linux** under **Movement** to 
 
 ## Play real Minecraft
 
-For first-person Minecraft Java with a separate OBS avatar, use the optional [Fabric bridge](docs/minecraft.md). The current build targets Minecraft 1.21.11 with Java 21. Choose **Minecraft Java** under **Movement**, download the pairing config, and install the client mod. Walking, head movement, jumps, sneaking, and arm actions drive the avatar while microphone effects and backgrounds stay in Skincast. See the guide for build/install steps and what still needs in-game testing.
+For first-person Minecraft Java with a separate OBS avatar, use the optional [Fabric bridge](docs/minecraft.md). The current build targets Minecraft 26.1 with Java 25. Choose **Minecraft Java** under **Movement**, download the pairing config, and install the client mod. Walking, head movement, jumps, sneaking, and arm actions drive the avatar while microphone effects and backgrounds stay in Skincast. See the guide for build/install steps and what still needs in-game testing.
 
 ## Play with the avatar
 

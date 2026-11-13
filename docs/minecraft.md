@@ -12,19 +12,19 @@ The bridge keeps the standard skin and OBS composition already working here. A g
 
 ## Supported build
 
-The current build pins Minecraft Java **1.21.11**, Java **21**, Fabric Loader **0.20.1**, Fabric API **0.141.6+1.21.11**, Loom **1.14.10**, and Gradle **9.2.1**. It uses official Mojang mappings. It is not a Bedrock, Forge, NeoForge, or other Minecraft-version build. Other launchers can work if they run this exact Fabric instance; their compatibility has not been tested.
+The current build pins Minecraft Java **26.1**, Java **25**, Fabric Loader **0.20.1**, Fabric API **0.145.1+26.1**, Loom **1.19.4**, and Gradle **9.8.2**. Minecraft 26.1 ships unobfuscated; this build uses Fabric Loom without a mappings or remapping step. It is not a Bedrock, Forge, NeoForge, or other Minecraft-version build. Other launchers can work if they run this exact Fabric instance; their compatibility has not been tested.
 
 Primary references checked for this implementation:
 
-- [Fabric events for 1.21.11](https://docs.fabricmc.net/1.21.11/develop/events) explains the event callback mechanism.
-- [Fabric's official example project](https://github.com/FabricMC/fabric-example-mod/tree/1.21) demonstrates split client sources, Mojang mappings, and Java 21 builds.
-- [Fabric Loader metadata for 1.21.11](https://meta.fabricmc.net/v2/versions/loader/1.21.11) lists available loader builds.
+- [Fabric events for 26.1](https://docs.fabricmc.net/26.1/develop/events) explains the event callback mechanism.
+- [Fabric's official example project](https://github.com/FabricMC/fabric-example-mod/tree/26.1) demonstrates split client sources, the unobfuscated build setup, and Java 25 builds.
+- [Fabric Loader metadata for 26.1](https://meta.fabricmc.net/v2/versions/loader/26.1) lists available loader builds.
 - [Fabric API Maven metadata](https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml) and [Loom Maven metadata](https://maven.fabricmc.net/net/fabricmc/fabric-loom/maven-metadata.xml) supply the pinned released dependencies.
-- [Java 21 WebSocket API](https://docs.oracle.com/en/java/javase/21/docs/api/java.net.http/java/net/http/WebSocket.html) provides asynchronous local transport without an additional bundled network library.
+- [Java 25 WebSocket API](https://docs.oracle.com/en/java/javase/25/docs/api/java.net.http/java/net/http/WebSocket.html) provides asynchronous local transport without an additional bundled network library.
 
 ## Build and install
 
-1. Install Java 21 and Node.js 22 or newer. Install Minecraft Java and create a Fabric **1.21.11** instance with Loader **0.20.1** and Fabric API **0.141.6+1.21.11**. Use your launcher's instance folder, which may differ from the standard Minecraft folder.
+1. Install Java 25 and Node.js 22 or newer. Install Minecraft Java and create a Fabric **26.1** instance with Loader **0.20.1** and Fabric API **0.145.1+26.1**. Use your launcher's instance folder, which may differ from the standard Minecraft folder.
 2. Build the mod from this checkout:
 
    ```sh
@@ -32,8 +32,10 @@ Primary references checked for this implementation:
    ./gradlew build
    ```
 
-   On Windows use `gradlew.bat build`. On macOS, if Gradle uses an older Java, run `JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew build`.
-3. Copy `minecraft-mod/build/libs/skincast-minecraft-0.1.0.jar` into the instance's `mods/` folder alongside Fabric API. Use the regular JAR, not the sources JAR.
+   On Fedora, if Gradle picks Java 21, run `JAVA_HOME=/usr/lib/jvm/java-25-temurin-jdk ./gradlew build` (adjust to your Java 25 JDK path).
+
+   On Windows use `gradlew.bat build`. On macOS, if Gradle uses an older Java, run `JAVA_HOME=$(/usr/libexec/java_home -v 25) ./gradlew build`.
+3. Copy `minecraft-mod/build/libs/skincast-minecraft-0.2.0.jar` into the instance's `mods/` folder alongside Fabric API. Use the regular JAR, not the sources JAR.
 4. Start this checkout's studio. For this independent checkout, use a separate port so the original project's server keeps running:
 
    ```sh
@@ -50,7 +52,7 @@ The config pairs this Minecraft instance with this running studio's port and tok
 
 ## Playing another instance or game
 
-For head movement while another game or instance has focus, use the independent [Game mouse mode](game-mouse.md) on macOS. No Fabric connection is needed for that mode. For actual Minecraft walking, jumps, and actions, put this mod in the instance you are playing and use Minecraft Java mode. Only one instance can publish to the current bridge at a time.
+For head movement while another game or instance has focus, use the independent [Game mouse mode](game-mouse.md) on macOS or Linux. No Fabric connection is needed for that mode. For actual Minecraft walking, jumps, and actions, put this mod in the instance you are playing and use Minecraft Java mode. Only one instance can publish to the current bridge at a time.
 
 ## What follows the player
 
@@ -82,9 +84,9 @@ npm run test:minecraft
 
 `test:minecraft` is a repeatable synthetic publisher. It starts a temporary local server on an available port, opens the actual studio and overlay in headless Chromium with WebGL, downloads the config, publishes motion, and verifies look direction, walking, jumping, sneaking, swinging, reload state, independent voice, pause, stale reset, and return to desktop input. It closes its server and removes temporary pairing data. It never contacts an existing running studio. Install Chromium with `npx playwright install chromium` if needed.
 
-Verified here: the production mod JAR compiles and remaps against the pinned game APIs; all nine Node server tests and both browser suites pass. The existing browser suite had one transient timeout in sandbox pointer movement and passed on an isolated rerun. The Gradle project currently has no game runtime tests. Synthetic JSON replay proves the app bridge and rendering, not the mod's in-game event timing or visual feel.
+Verified for the 26.1 upgrade: `JAVA_HOME=/usr/lib/jvm/java-25-temurin-jdk ./gradlew clean build` succeeds and produces `skincast-minecraft-0.2.0.jar`; all 12 Node tests pass. The existing Game mouse, Minecraft, and general browser suites passed before this mod-only upgrade. The Gradle project currently has no game runtime tests. Synthetic JSON replay proves the app bridge and rendering, not the mod's in-game event timing or visual feel.
 
-No Minecraft game client was launched, and no installed game instance was identified. Manual checks still needed in a licensed 1.21.11 Fabric instance:
+No Minecraft game client was launched, and no installed game instance was identified. Manual checks still needed in a licensed 26.1 Fabric instance:
 
 - Walk, sprint, turn, look up/down, jump, sneak, mine, attack, place blocks, and use an item while viewing the OBS overlay.
 - Check whether head turning relative to the body and stride strength feel right in first person.
