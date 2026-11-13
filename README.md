@@ -55,7 +55,7 @@ Custom skins can use classic or slim arms. Auto detect works for standard skins.
 
 ## Follow movement in another game
 
-On macOS, choose **Game mouse · macOS** under **Movement** to react to relative mouse movement while playing a second Minecraft instance or another game. Enable Input Monitoring when prompted by the card. This moves the Skincast avatar's head without requiring a mod in the game. See [Game mouse setup and verification limits](docs/game-mouse.md). Actual captured-input behavior still needs testing in your games.
+On macOS or Linux, choose **Game mouse · macOS / Linux** under **Movement** to react to relative mouse movement while playing a second Minecraft instance or another game. On macOS, enable Input Monitoring when prompted by the card. On Fedora/Wayland, grant scoped mouse read access using the guide. This moves the Skincast avatar's head without requiring a mod in the game. See [Game mouse setup and verification limits](docs/game-mouse.md). Actual captured-input behavior still needs testing in your games.
 
 ## Play real Minecraft
 

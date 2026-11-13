@@ -543,7 +543,9 @@ function renderRelativeStatus() {
     : tracking.relativeMessage || "Game mouse is unavailable on this desktop.";
   $("relative-status").classList.toggle("online", !!tracking.relativeAvailable);
   $("relative-permission").hidden =
-    tracking.relativeSupported !== true || tracking.relativeAvailable === true;
+    tracking.relativeSupported !== true ||
+    tracking.relativePermissionAction === false ||
+    tracking.relativeAvailable === true;
 }
 $("relative-permission").addEventListener("click", async () => {
   $("relative-permission").disabled = true;

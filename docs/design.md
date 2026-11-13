@@ -40,3 +40,5 @@ The persisted `motionSource` setting defaults to `desktop`. `src/minecraft-pose.
 ## Relative mouse input
 
 Game mouse is a third `motionSource`, separate from absolute desktop position and Minecraft player pose. The macOS helper emits mouse-event deltas through a listen-only Core Graphics event tap. `lib/relative-mouse.mjs` validates helper samples and integrates a bounded pose with a return to center. `lib/cursor.mjs` publishes absolute and relative values together and exposes a permission-request action. `server.mjs` shares the input with all views. The renderer selects relative values only in Avatar view and times out stale samples. Windows and Linux retain their existing absolute helpers. See [Game mouse setup](game-mouse.md) for scope and verification limits.
+
+On Linux, `native/cursor-linux.py` discovers relative mouse devices through sysfs and reads evdev motion with scoped device ACLs. It retries hotplug and permission changes, discards non-motion input, and shares the existing relative pose integration. Wayland supplies relative motion only; X11 absolute coordinates continue through xdotool.
