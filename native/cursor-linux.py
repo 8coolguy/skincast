@@ -1,4 +1,4 @@
-"""Read only REL_X/REL_Y from Linux mouse devices; never grab or inject input."""
+"""Read movement and left clicks from mouse devices; never grab or inject input."""
 import glob
 import json
 import os
@@ -29,11 +29,13 @@ def mouse_devices():
 
 def deltas(data, dropped=False):
     dx = dy = 0
+    left_clicks = 0
     for offset in range(0, len(data), EVENT.size):
         _, _, kind, code, value = EVENT.unpack_from(data, offset)
         if kind == 0 and code == 3:  # SYN_DROPPED: discard an incomplete batch.
             dropped = True
             dx = dy = 0
+            left_clicks = 0
         elif kind == 0 and code == 0:
             dropped = False
         if dropped:
@@ -42,7 +44,9 @@ def deltas(data, dropped=False):
             dx += value
         elif kind == 2 and code == 1:
             dy += value
-    return dx, dy, dropped
+        elif kind == 1 and code == 272 and value == 1:  # BTN_LEFT press only.
+            left_clicks += 1
+    return dx, dy, dropped, left_clicks
 
 
 def main():
@@ -69,14 +73,16 @@ def main():
             next_scan = now + 1
         ready, _, _ = select.select(list(opened.values()), [], [], 1 / 30)
         dx = dy = 0
+        left_clicks = 0
         for fd in ready:
             try:
                 data = os.read(fd, EVENT.size * 4096)
                 if not data:
                     raise OSError('Mouse disconnected')
-                a, b, dropped[fd] = deltas(data, dropped.get(fd, False))
+                a, b, dropped[fd], clicks = deltas(data, dropped.get(fd, False))
                 dx += a
                 dy += b
+                left_clicks += clicks
             except BlockingIOError:
                 pass
             except OSError:
@@ -94,7 +100,7 @@ def main():
         available = bool(opened)
         message = ('Listening to Linux mouse movement.' if available else
                    'Mouse read access needed. See docs/game-mouse.md for Fedora setup.')
-        print(json.dumps(dict(x=x, y=y, dx=dx, dy=dy,
+        print(json.dumps(dict(x=x, y=y, dx=dx, dy=dy, leftClicks=left_clicks,
                               display='X11 desktop' if x11 else 'Wayland · Game mouse only',
                               relativeAvailable=available, relativeMessage=message)), flush=True)
         # Limit output even when a high-polling-rate mouse is active.

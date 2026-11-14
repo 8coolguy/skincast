@@ -36,6 +36,7 @@ export function createAvatar(
   hand.visible = false;
   let lookOverride = null;
   let swingUntil = 0;
+  let clickSwingUntil = 0;
   const material = new MeshBasicMaterial({
     color: "#a6efb4",
     transparent: true,
@@ -163,6 +164,11 @@ export function createAvatar(
         skin.leftLeg.rotation.x += motion.crouch * 0.25;
         skin.rightLeg.rotation.x += motion.crouch * 0.25;
       } else skin.body.rotation.x = 0;
+      const clickSwing =
+        settings.clickArm && !sandbox && !useMinecraft
+          ? Math.sin(Math.max(0, (clickSwingUntil - now) / 300) * Math.PI)
+          : 0;
+      skin.rightArm.rotation.x -= clickSwing * 1.8;
       const action = useMinecraft ? null : play.action;
       if (action?.name === "wave")
         skin.rightArm.rotation.z =
@@ -185,6 +191,8 @@ export function createAvatar(
           (sandbox ? 0.5 : 1.6);
       }
       speech.animate(voice, t, settings);
+      container.dataset.clickSwing = clickSwing.toFixed(3);
+      container.dataset.rightArmPitch = skin.rightArm.rotation.x.toFixed(3);
       container.dataset.motionSource = useMinecraft
         ? "minecraft"
         : useRelative
@@ -246,6 +254,12 @@ export function createAvatar(
   frame = requestAnimationFrame(render);
   return {
     async configure(next) {
+      if (
+        !next.clickArm ||
+        next.stageMode !== "avatar" ||
+        next.motionSource === "minecraft"
+      )
+        clickSwingUntil = 0;
       settings = next;
       const speechBounds = speech.configure(settings);
       container.dataset.indicatorStyle = settings.voiceStyle;
@@ -333,6 +347,14 @@ export function createAvatar(
     },
     swing() {
       swingUntil = performance.now() + 300;
+    },
+    swingArm() {
+      if (
+        settings?.clickArm &&
+        settings.stageMode === "avatar" &&
+        settings.motionSource !== "minecraft"
+      )
+        clickSwingUntil = performance.now() + 300;
     },
     testVoice() {
       testUntil = performance.now() + 2200;

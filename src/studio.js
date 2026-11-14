@@ -266,6 +266,7 @@ const connection = connect(
     }
     if (message.type === "minecraft") updateMinecraft(message.minecraft);
     if (message.type === "settings") renderSettings(message.settings);
+    if (message.type === "arm-swing") avatar?.swingArm();
     if (message.type === "play") {
       avatar?.setPerformance(message.play);
       playground?.update(message.play);

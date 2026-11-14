@@ -34,6 +34,8 @@ Select **Transparent** for a cutout with no background. The checkerboard appears
 
 The server starts the cursor helper automatically. Check the **Movement** card for the helper's status.
 
+Enable **Swing arm on left click** in **Movement** to swing the avatar’s right arm when you left-click anywhere on your desktop or in a game. It is off by default and saves automatically. It works in Avatar view with Desktop cursor or Game mouse, independently of head tracking, and appears in both the studio and OBS. Each press triggers a short swing; holding the button does not repeat it. Minecraft Java continues to use actual in-game arm movement. On Linux, mouse device read access is required (see [Game mouse setup](docs/game-mouse.md)).
+
 - **macOS:** Install Xcode Command Line Tools with `xcode-select --install` if the helper cannot compile. The first launch compiles a small Swift program. It reads the pointer position without a screen recording permission.
 - **Windows:** The helper runs through Windows PowerShell and reads the cursor with Windows Forms.
 - **Linux with X11:** Install `xdotool` and Python 3. The helper reads the X11 desktop geometry and cursor position.

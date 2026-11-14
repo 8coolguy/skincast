@@ -376,6 +376,13 @@ export async function startServer({
         (value) => {
           pointer = value;
           broadcast({ type: "pointer", ...pointer });
+          if (
+            value.leftClicks > 0 &&
+            settings.clickArm &&
+            settings.stageMode === "avatar" &&
+            settings.motionSource !== "minecraft"
+          )
+            broadcast({ type: "arm-swing" });
         },
         (value) => {
           if (

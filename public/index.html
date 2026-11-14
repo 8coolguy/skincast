@@ -148,7 +148,7 @@
                 On macOS, allow Input Monitoring for Skincast or the terminal
                 that started it. Restart Skincast if macOS asks. On Linux, grant
                 mouse device read access as described in docs/game-mouse.md. This follows
-                mouse movement only, without walking or game actions.
+                mouse movement, with optional left-click arm swings.
               </p>
             </div>
             <label class="toggle-row" for="tracking"
@@ -201,6 +201,15 @@
                 <span>Snappy</span><span>Floaty</span>
               </div>
             </div>
+            <label class="toggle-row separated" for="clickArm"
+              ><span>Swing arm on left click<small
+                >Desktop and Game mouse · Avatar view. Linux needs mouse read access.</small
+              ></span><input
+                class="toggle"
+                id="clickArm"
+                type="checkbox"
+                data-setting="clickArm"
+            /></label>
             <label class="toggle-row separated" for="idle"
               ><span>Idle animation<small>A little breathing room</small></span
               ><input

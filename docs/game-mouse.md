@@ -23,7 +23,7 @@ Game mouse turns the head within a bounded range and returns it toward center af
 
 ## Implementation and permissions
 
-The macOS helper uses a listen-only Core Graphics event tap for mouse movement and drag events. It does not register keyboard events, suppress mouse events, or inject input into another application. It reads relative event deltas rather than calculating a difference between screen positions. Core Graphics event deltas are not a promise of unaccelerated hardware input.
+The macOS helper uses a listen-only Core Graphics event tap for mouse movement, drag events, and left-button presses. It does not register keyboard events, suppress mouse events, or inject input into another application. It reads relative event deltas rather than calculating a difference between screen positions. Core Graphics event deltas are not a promise of unaccelerated hardware input.
 
 Primary references:
 
@@ -81,7 +81,7 @@ The installer writes `/etc/udev/rules.d/99-skincast-mm712.rules`, matching vendo
 
 To remove this persistent setup, delete that rule with administrator privileges and run `sudo udevadm control --reload-rules`. Reconnect both devices to clear their existing ACLs, and restart Skincast. Other mouse models can use the manual per-device setup above.
 
-The helper retries device discovery and access every second, so granting access does not require restarting. Without `SKINCAST_MOUSE_DEVICE`, it reads accessible devices advertising both relative mouse axes. The reader discards key/button events and wheel input. It emits zero deltas at rest so the avatar returns to center. Disconnects and access loss clear relative availability. An already open device may remain readable until the helper closes it; restart Skincast after revoking access.
+The helper retries device discovery and access every second, so granting access does not require restarting. Without `SKINCAST_MOUSE_DEVICE`, it reads accessible devices advertising both relative mouse axes. The reader counts left-button presses and discards other button events, keyboard keys, and wheel input. Enable **Swing arm on left click** in Movement to animate those presses in Avatar view with Desktop cursor or Game mouse. It emits zero deltas at rest so the avatar returns to center. Disconnects and access loss clear relative availability. An already open device may remain readable until the helper closes it; restart Skincast after revoking access.
 
 The manual ACL lasts until the device is recreated, usually at unplug or reboot. Reapply it then, or use the MM712 installer above. Remove it with `sudo setfacl -x "u:$(id -un)" /dev/input/by-id/YOUR-MOUSE-event-mouse` and restart Skincast. Do not run the studio as root or add yourself to the broad `input` group.
 

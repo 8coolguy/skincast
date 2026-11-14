@@ -29,10 +29,13 @@ function client(url) {
 
 test("settings reject invalid external values and keep source tied to username", () => {
   assert.equal(validateSettings({}).username, "8coolguy");
+  assert.equal(validateSettings({}).clickArm, false);
+  assert.equal(validateSettings({ clickArm: true }).clickArm, true);
   for (const patch of [
     { zoom: NaN },
     { threshold: -1 },
     { tracking: "yes" },
+    { clickArm: "yes" },
     { model: "unknown" },
     { background: "image" },
     { skinSource: "https://example.com/skin.png" },
@@ -232,6 +235,58 @@ test("studio and overlay share persisted settings, validate requests, and reconn
   assert.equal(saved.settings.backgroundColor, "#ff8800");
   assert.equal(saved.settings.framing, "portrait");
   fresh.socket.close();
+});
+
+test("left clicks broadcast a swing only when enabled for desktop or game mouse", async (t) => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), "skincast-click-"));
+  let position;
+  const app = await startServer({
+    port: 0, dataDir, quiet: true,
+    cursorFactory: async (_root, onPosition) => {
+      position = onPosition;
+      return { stop() {} };
+    },
+  });
+  t.after(async () => {
+    await app.close();
+    await rm(dataDir, { recursive: true, force: true });
+  });
+  const studio = client(app.url), overlay = client(app.url);
+  await Promise.all([studio.next("state"), overlay.next("state")]);
+  const counts = [0, 0];
+  [studio, overlay].forEach((view, index) => view.socket.on("message", (raw) => {
+    if (JSON.parse(raw).type === "arm-swing") counts[index]++;
+  }));
+  const put = async (patch) => {
+    const response = await fetch(`${app.url}/api/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    assert.equal(response.status, 200);
+  };
+  let sequence = 0;
+  const sample = async (leftClicks, expected) => {
+    position({ x: 0, y: 0, leftClicks });
+    // A later pointer packet is a barrier for all earlier swing broadcasts.
+    position({ x: ++sequence / 100, y: 0, leftClicks: 0 });
+    await Promise.all([studio, overlay].map((view) =>
+      view.next("pointer", (message) => message.x === sequence / 100),
+    ));
+    assert.deepEqual(counts, [expected, expected]);
+  };
+  await sample(1, 0);
+  await put({ clickArm: true, tracking: false });
+  await sample(1, 1);
+  await sample(0, 1);
+  await put({ motionSource: "relative" });
+  await sample(1, 2);
+  await put({ motionSource: "minecraft" });
+  await sample(1, 2);
+  await put({ motionSource: "desktop", stageMode: "sandbox" });
+  await sample(1, 2);
+  await put({ stageMode: "avatar", clickArm: false });
+  await sample(1, 2);
 });
 
 test("microphone ownership, level broadcasts, disconnect, and stale input recover", async (t) => {

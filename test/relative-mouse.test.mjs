@@ -50,6 +50,9 @@ test("Game mouse follows deltas even with a centered cursor, then recenters and 
     { x: 0, y: 0, dx: NaN },
     { x: 0, y: 0, dy: "2" },
     { x: 0, y: 0, relativeAvailable: 1 },
+    { x: 0, y: 0, leftClicks: -1 },
+    { x: 0, y: 0, leftClicks: 0.5 },
+    { x: 0, y: 0, leftClicks: "1" },
   ])
     assert.throws(() => parseCursorSample(bad));
   assert.deepEqual(parseCursorSample({ x: 0.1, y: 0.2 }), {
@@ -58,6 +61,7 @@ test("Game mouse follows deltas even with a centered cursor, then recenters and 
     dx: 0,
     dy: 0,
     relativeAvailable: false,
+    leftClicks: 0,
   });
 });
 

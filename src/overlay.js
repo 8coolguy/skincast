@@ -18,6 +18,7 @@ try {
       }
       if (message.type === "minecraft") avatar.setMinecraft(message.minecraft);
       if (message.type === "settings") avatar.configure(message.settings);
+      if (message.type === "arm-swing") avatar.swingArm();
       if (message.type === "play") avatar.setPerformance(message.play);
       if (message.type === "pointer")
         avatar.setInput({
